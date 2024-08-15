@@ -5,6 +5,7 @@ import sys
 import time
 import stat
 import shutil
+import hashlib
 
 #ws63编译配置
 BUILD_INFO_FILENAME = 'build_config.json'
@@ -333,8 +334,8 @@ def sample_build_prepare(input_list):
         global_combined = '_'.join(remaining_parts)
         if len(parts) >= 5:
             global_combined += '_'
-            remaining_parts = parts[4:len(parts)]
-            global_combined += '-'.join(remaining_parts)
+            build_def_sha = hashlib.sha256('-'.join(parts[4:]).encode('utf-8',errors='ignore'))
+            global_combined += build_def_sha.hexdigest()[:32]
         # 获取sample目录路径，并复制到指定目录
         # 截取目标内容
         target_string = sample_file_path.split('/build_config.json')[0] + '/'
