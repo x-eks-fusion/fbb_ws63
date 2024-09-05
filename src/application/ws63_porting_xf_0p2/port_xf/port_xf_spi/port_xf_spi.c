@@ -41,7 +41,7 @@
 #define XF_HAL_SPI_DEFAULT_MODE                 XF_HAL_SPI_MODE_0
 #define XF_HAL_SPI_DEFAULT_DATA_WIDTH           XF_HAL_SPI_DATA_WIDTH_8_BITS
 #define XF_HAL_SPI_DEFAULT_TIMEOUT              1000
-#define XF_HAL_SPI_DEFAULT_SPEED                1000*500
+#define XF_HAL_SPI_DEFAULT_SPEED                (1*1000*1000)
 #define XF_HAL_SPI_DEFAULT_SCLK_NUM             1
 #define XF_HAL_SPI_DEFAULT_CS_NUM               2
 #define XF_HAL_SPI_DEFAULT_MOSI_NUM             3
@@ -305,8 +305,8 @@ state_change_process:
         };
         pin_t port_spi_io_set[SPI_FUNC_MAX]={ [0 ... (SPI_FUNC_MAX-1)] = PIN_NONE};
 
-        uint32_t speed_MHz = spi_config->speed/1000;
-        speed_MHz = (speed_MHz == 0)?1:speed_MHz;
+        uint32_t speed_MHz = spi_config->speed/(1000*1000);
+        XF_CHECK(speed_MHz == 0, XF_ERR_INVALID_ARG, TAG, "speed must be >= 1MHz!");
         
         pin_mode_t pin_mux_mode = PIN_MODE_MAX;
         uint8_t i = MUX_SPI0_SCK, max_index = MUX_SPI0_OUT+1; 
@@ -427,6 +427,7 @@ static int port_spi_read(xf_hal_dev_t *dev, void *buf, size_t count)
         .rx_buff = buf,
         .rx_bytes = count,
     };
+    
     /* 
         !! 经修改底层实现部分源码，
         现非中断且有超时时间调用 slave_read 返回时，
