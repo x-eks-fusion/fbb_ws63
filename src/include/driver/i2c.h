@@ -208,6 +208,16 @@ errcode_t uapi_i2c_master_read(i2c_bus_t bus, uint16_t dev_addr, i2c_data_t *dat
  * @endif
  */
 errcode_t uapi_i2c_master_writeread(i2c_bus_t bus, uint16_t dev_addr, i2c_data_t *data);
+
+/* XF_MOD_TAG: 增加 Master 可设置停止位、起始位的读写 api */
+errcode_t _port_i2c_master_write(
+    i2c_bus_t bus, uint16_t dev_addr, i2c_data_t *data,
+    bool need_stop, bool need_restart);
+
+errcode_t _port_i2c_master_read(
+    i2c_bus_t bus, uint16_t dev_addr, i2c_data_t *data,
+    bool need_stop, bool need_restart);
+
 #endif  /* CONFIG_I2C_SUPPORT_MASTER */
 
 #if defined(CONFIG_I2C_SUPPORT_SLAVE) && (CONFIG_I2C_SUPPORT_SLAVE == 1)

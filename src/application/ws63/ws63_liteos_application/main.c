@@ -252,8 +252,8 @@ static void app_main(const void *unused)
     while (1) {
         (void)osDelay(APP_MAIN_DELAY_TIME);
         LOS_MemInfoGet(m_aucSysMem0, &status);
-        PRINT("[SYS INFO] mem: used:%u, free:%u; log: drop/all[%u/%u], at_recv %u.\r\n", status.uwTotalUsedSize,
-            status.uwTotalFreeSize, log_get_missed_messages_count(), log_get_all_messages_count(), g_at_uart_recv_cnt);
+        // PRINT("[SYS INFO] mem: used:%u, free:%u; log: drop/all[%u/%u], at_recv %u.\r\n", status.uwTotalUsedSize,
+        //     status.uwTotalFreeSize, log_get_missed_messages_count(), log_get_all_messages_count(), g_at_uart_recv_cnt);
     }
 }
 #endif

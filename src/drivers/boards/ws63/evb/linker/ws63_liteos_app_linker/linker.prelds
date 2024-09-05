@@ -528,6 +528,13 @@ SECTIONS
         *(.srodata*)
         KEEP (*(.flashtext))
         KEEP (*(.flashtext*))
+
+        /* xfusion */
+        . = ALIGN(4);
+        __xf_init_start = .;
+        KEEP(*(SORT(.xf_auto_init*)))
+        __xf_init_end = .;
+        
         . = ALIGN(4);
         __text_end__ = .;
     } > PROGRAM

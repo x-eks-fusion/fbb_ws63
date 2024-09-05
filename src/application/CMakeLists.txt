@@ -24,3 +24,9 @@ if("${CHIP}" STREQUAL "socmn1" OR "${CHIP}" STREQUAL "brandy")
 endif()
 
 add_subdirectory_if_exist(wearable)
+
+if(DEFINED CONFIG_WS63_PORTING_XF_V0_2_X)
+    add_subdirectory_if_exist(ws63_porting_xf_0p2)
+else()
+    add_subdirectory_if_exist(ws63_porting_xf_null)
+endif()

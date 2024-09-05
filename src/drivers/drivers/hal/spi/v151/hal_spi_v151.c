@@ -447,6 +447,13 @@ errcode_t hal_spi_v151_read(spi_bus_t bus, hal_spi_xfer_data_t *data, uint32_t t
                 data->rx_bytes = trans_frames * frame_bytes;
                 return ERRCODE_SUCC;
             }
+            /* XF_MOD_TAG: 增加超时返回时，更新 data->rx_bytes，
+                已告知上层剩余未接收到的数据量（
+                不是修改为接收到的实际数据量这种更直观的情况的原因是：
+                保持与原实现的中其他返回情况对 data->rx_bytes 的修改一致，
+                都是返回剩余数据量） 
+            */
+            data->rx_bytes = trans_frames * frame_bytes;
             return ERRCODE_SPI_TIMEOUT;
         }
     }

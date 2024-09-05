@@ -1,6 +1,6 @@
 #===============================================================================
 # @brief    Kconfig file.
-# Copyright (c) HiSilicon (Shanghai) Technologies Co., Ltd. 2023-2023. All rights reserved.
+# Copyright (c) @CompanyNameMagicTag 2023-2023. All rights reserved.
 #===============================================================================
 
 config SAMPLE_ENABLE
@@ -12,4 +12,31 @@ config SAMPLE_ENABLE
 
 if SAMPLE_ENABLE
 osource "application/samples/Kconfig"
+endif
+
+osource "application/ws63/Kconfig"
+
+config PORTING_XF_ENABLE
+    bool
+    prompt "Enable porting XF."
+    default y
+    help
+        This option means support porting XF.
+
+if PORTING_XF_ENABLE
+choice
+    prompt "WS63 PORTING XF VERSION."
+    default WS63_PORTING_XF_V0_2_X
+    config  WS63_PORTING_XF_V0_2_X
+        bool "XF V0.2.x"
+endchoice
+
+config WS63_PORTING_XF_VERSION
+    int 
+    default 2 if WS63_PORTING_XF_V0_2_X
+
+if WS63_PORTING_XF_V0_2_X
+osource "application/ws63_porting_xf_0p2/Kconfig"
+endif
+
 endif

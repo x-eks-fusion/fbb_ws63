@@ -1,0 +1,14 @@
+
+# vscode
+.vscode/
+*.code-workspace
+
+# temporary
+/temp/
+__pycache__/
+
+# sdk
+/output/
+
+# 临时静态库
+interim_binary/ws63/libs/wifi/
