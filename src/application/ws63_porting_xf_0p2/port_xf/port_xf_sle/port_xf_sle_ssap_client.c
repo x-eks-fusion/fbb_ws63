@@ -511,7 +511,7 @@ static void port_ssapc_read_cfm_cb(
             .data_len = read_data->data_len,
         }
     };
-    s_sle_ssapc_evt_cb(XF_SLE_SSAPS_EVT_RECV_READ_CFM, &cb_param);
+    s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_RECV_READ_CFM, &cb_param);
 
 }
 
@@ -535,7 +535,7 @@ static void port_ssapc_write_cfm_cb(
             .handle = write_result->handle,
         }
     };
-    s_sle_ssapc_evt_cb(XF_SLE_SSAPS_EVT_RECV_WRITE_CFM, &cb_param);
+    s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_RECV_WRITE_CFM, &cb_param);
 }
 
 void port_ssapc_notification_cb(
@@ -560,7 +560,7 @@ void port_ssapc_notification_cb(
             .data = data->data,
         }
     };
-    s_sle_ssapc_evt_cb(XF_SLE_SSAPS_EVT_NOTIFICATION, &cb_param);
+    s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_NOTIFICATION, &cb_param);
 }
 
 void port_ssapc_indication_cb(
@@ -584,5 +584,5 @@ void port_ssapc_indication_cb(
             .data = data->data,
         }
     };
-    s_sle_ssapc_evt_cb(XF_SLE_SSAPS_EVT_INDICATION, &cb_param);
+    s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_INDICATION, &cb_param);
 }
