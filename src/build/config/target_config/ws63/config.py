@@ -44,7 +44,8 @@ target = {
             'CONFIG_UART_SUPPORT_LPM',
             "_PRE_RADAR_CCA_SW_OPT",
             "MBEDTLS_CONFIG_FILE=\"config-ws-iot.h\"",
-            "CONFIG_NO_VERIFY_TLS_TIME"
+            "CONFIG_NO_VERIFY_TLS_TIME",
+            "CONFIG_DHCPS_GW",
         ],
         'ram_component': [
             'ws63_liteos_app',
@@ -104,7 +105,7 @@ target = {
             # "port_xf_test",
             # "port_xf_timer",
             "port_xf_uart",
-            # "port_xf_wifi",
+            "port_xf_wifi",
         ],
         'ccflags': [
             "-DBOARD_ASIC", '-DPRE_ASIC',

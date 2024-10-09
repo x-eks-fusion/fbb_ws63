@@ -23,7 +23,7 @@ add_subdirectory_if_exist(port_xf_spi)
 # add_subdirectory_if_exist(port_xf_test) # 仅供参考
 # add_subdirectory_if_exist(port_xf_timer)
 add_subdirectory_if_exist(port_xf_uart)
-# add_subdirectory_if_exist(port_xf_wifi)
+add_subdirectory_if_exist(port_xf_wifi)
 
 set(COMPONENT_NAME "port_xf_event")
 build_component()
@@ -35,7 +35,4 @@ set(COMPONENT_NAME "port_xf_test")
 build_component()
 
 set(COMPONENT_NAME "port_xf_timer")
-build_component()
-
-set(COMPONENT_NAME "port_xf_wifi")
 build_component()

@@ -20,6 +20,9 @@
 #include "pinctrl.h"
 #include "platform_core_rom.h"
 
+#include "soc_osal.h"
+#include "errcode.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,6 +51,8 @@ typedef __aligned(1) struct {
 #define PIN_MUX_CNT_MAX (4) /*!< 同一个功能最多被复用到不同引脚的次数 */
     port_pin_mux_t pin_mux[PIN_MUX_CNT_MAX]; /*!< 查找结果 */
 } port_pin_search_results_t;
+
+typedef errcode_t pf_err_t;
 
 /* ==================== [Global Prototypes] ================================= */
 
@@ -126,6 +131,8 @@ xf_err_t port_utils_value_to_idx(
     const void *map,
     uint16_t map_size, uint16_t element_size,
     uint32_t val, uint32_t *idx);
+
+xf_err_t port_convert_pf2xf_err(pf_err_t pf_err);
 
 /* ==================== [Macros] ============================================ */
 

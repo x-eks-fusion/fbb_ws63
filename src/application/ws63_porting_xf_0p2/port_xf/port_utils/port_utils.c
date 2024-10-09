@@ -121,4 +121,98 @@ xf_err_t port_utils_value_to_idx(
     return XF_FAIL;
 }
 
+xf_err_t port_convert_pf2xf_err(errcode_t pf_err)
+{
+    switch (pf_err) {
+    default:
+    case ERRCODE_FAIL:                              return XF_FAIL;                 break;
+    case ERRCODE_SUCC:                              return XF_OK;                   break;
+    case ERRCODE_MALLOC:                            return XF_ERR_NO_MEM;           break;
+    case ERRCODE_INVALID_PARAM:                     return XF_ERR_INVALID_ARG;      break;
+
+    case ERRCODE_PARTITION_CONFIG_NOT_FOUND:
+    case ERRCODE_IMAGE_CONFIG_NOT_FOUND:
+    case ERRCODE_NV_KEY_NOT_FOUND:
+    case ERRCODE_NV_PAGE_NOT_FOUND:
+    case ERRCODE_DIAG_NOT_FOUND:
+    case ERRCODE_DIAG_OBJ_NOT_FOUND:                return XF_ERR_NOT_FOUND;        break;
+
+    case ERRCODE_NOT_SUPPORT:
+    case ERRCODE_SFC_FLASH_NOT_SUPPORT:
+    case ERRCODE_SFC_CMD_NOT_SUPPORT:
+    case ERRCODE_PARTITION_NOT_SUPPORT:
+    case ERRCODE_UPG_NOT_SUPPORTED:
+    case ERRCODE_DIAG_NOT_SUPPORT:
+    case ERRCODE_DIAG_KV_NOT_SUPPORT_ID:            return XF_ERR_NOT_SUPPORTED;    break;
+
+    case ERRCODE_HASH_BUSY:
+    case ERRCODE_DMA_CH_BUSY:
+    case ERRCODE_KM_KEYSLOT_BUSY:
+    case ERRCODE_CIPHER_BUSY:
+    case ERRCODE_SPI_BUSY:
+    case ERRCODE_SFC_DMA_BUSY:
+    case ERROR_SECURITY_CHN_BUSY:
+    case ERRCODE_AT_CHANNEL_BUSY:
+    case ERRCODE_IPC_MAILBOX_STATUS_BUSY:
+    case ERRCODE_DIAG_BUSY:                         return XF_ERR_BUSY;             break;
+
+    case ERRCODE_HASH_TIMEOUT:
+    case UART_DMA_TRANSFER_TIMEOUT:
+    case ERRCODE_ADC_TIMEOUT:
+    case ERRCODE_TRNG_TIMEOUT:
+    case ERRCODE_PKE_TIMEOUT:
+    case ERRCODE_KM_TIMEOUT:
+    case ERRCODE_CIPHER_TIMEOUT:
+    case ERRCODE_I2C_TIMEOUT:
+    case ERRCODE_SPI_TIMEOUT:
+    case ERRCODE_SFC_FLASH_TIMEOUT_WAIT_READY:
+    case ERRCODE_PSRAM_RET_TIMEOUT:
+    case ERRCODE_CAN_FD_SEND_TIMEOUT:
+    case ERROR_SECURITY_GET_TRNG_TIMEOUT:
+    case ERROR_SECURITY_HASH_CLEAR_CHN_TIMEOUT:
+    case ERROR_SECURITY_HASH_CALC_TIMEOUT:
+    case ERROR_SECURITY_SYMC_CLEAR_CHN_TIMEOUT:
+    case ERROR_SECURITY_SYMC_CALC_TIMEOUT:
+    case ERROR_SECURITY_SYMC_GET_TAG_TIMEOUT:
+    case ERROR_SECURITY_PKE_LOCK_TIMEOUT:
+    case ERROR_SECURITY_PKE_WAIT_DONE_TIMEOUT:
+    case ERRCODE_FLASH_TIMEOUT:
+    case ERRCODE_SDIO_ERR_INIT_CARD_RDY_TIMEOUT:
+    case ERRCODE_SDIO_ERR_INIT_FUN1_RDY_TIMEOUT:
+    case ERRCODE_EPMU_TIMEOUT:                      return XF_ERR_TIMEOUT;          break;
+
+    case ERRCODE_PSRAM_RET_UNINIT:
+    case ERRCODE_GPIO_NOT_INIT:
+    case ERRCODE_CALENDAR_NOT_INIT:
+    case ERRCODE_UART_NOT_INIT:
+    case ERRCODE_PWM_NOT_INIT:
+    case ERRCODE_DMA_NOT_INIT:
+    case ERRCODE_SYSTICK_NOT_INIT:
+    case ERRCODE_PIN_NOT_INIT:
+    case ERRCODE_KEYSCAN_NOT_INIT:
+    case ERRCODE_I2C_NOT_INIT:
+    case ERRCODE_TIMER_NOT_INIT:
+    case ERRCODE_SFC_NOT_INIT:
+    case ERRCODE_MPU_NOT_INIT:
+    case ERRCODE_TSENSOR_NOT_INIT:
+    case ERRCODE_EFLASH_NOT_INIT:
+    case ERRCODE_EFUSE_NOT_INIT:
+    case ERRCODE_I2S_NOT_INIT:
+    case ERRCODE_PCM_NOT_INIT:
+    case ERRCODE_CAN_FD_NOT_INIT:
+    case ERROR_SECURITY_NOT_INIT:
+    case ERROR_SECURITY_PROCESS_NOT_INIT:
+    case ERRCODE_UPG_NOT_INIT:
+    case ERRCODE_NV_NOT_INITIALISED:
+    case ERRCODE_IPC_NOT_INIT:
+    case ERRCODE_SDIO_NOT_INIT:
+    case ERRCODE_EDGE_NOT_INITED:
+    case ERRCODE_RTC_NOT_INITED:
+    case ERRCODE_UPG_FLAG_NOT_INITED:               return XF_ERR_UNINIT;           break;
+
+    case ERRCODE_PSRAM_RET_INITED:
+    case ERRCODE_CAN_FD_INITED:                     return XF_ERR_INITED;           break;
+    }
+}
+
 /* ==================== [Static Functions] ================================== */
