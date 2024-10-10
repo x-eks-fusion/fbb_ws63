@@ -278,6 +278,22 @@ static int port_gpio_ioctl(xf_hal_dev_t *dev, uint32_t cmd, void *config)
     uint32_t pin = dev->id;
     xf_err_t ret = XF_OK;
 
+    /* 加载默认参数到缓存 */
+    if(cmd == XF_HAL_GPIO_CMD_DEFAULT)
+    {
+        XF_LOGI(TAG,">>>>> XF_HAL_GPIO_CMD_DEFAULT, pin:%d", pin);
+        obj_cfg->direction      = PORT_GPIO_DEFAULT_DIRECTION;
+        obj_cfg->speed          = PORT_GPIO_DEFAULT_SPEED;
+        obj_cfg->pull           = PORT_GPIO_DEFAULT_PULL;
+        obj_cfg->intr_enable    = false;
+        obj_cfg->intr_type      = PORT_GPIO_DEFAULT_INTR_TYPE;
+        obj_cfg->cb.callback    = PORT_GPIO_DEFAULT_CB_CALLBACK;
+        obj_cfg->cb.user_data   = PORT_GPIO_DEFAULT_CB_USER_DATA;
+        obj_cfg->isr.callback   = PORT_GPIO_DEFAULT_ISR_CALLBACK;
+        obj_cfg->isr.user_data  = PORT_GPIO_DEFAULT_ISR_USER_DATA;
+        port_gpio->isr          = &obj_cfg->isr;
+        return XF_OK;
+    }
     /* 设置缓存的所有参数生效 */
     if(cmd == XF_HAL_GPIO_CMD_ALL)
     {
@@ -299,20 +315,6 @@ static int port_gpio_ioctl(xf_hal_dev_t *dev, uint32_t cmd, void *config)
         /* 命令匹配 */
         switch (cmd_bit)
         {
-        /* 加载默认参数到缓存 */
-        case XF_HAL_GPIO_CMD_DEFAULT:
-        {
-            obj_cfg->direction      = PORT_GPIO_DEFAULT_DIRECTION;
-            obj_cfg->speed          = PORT_GPIO_DEFAULT_SPEED;
-            obj_cfg->pull           = PORT_GPIO_DEFAULT_PULL;
-            obj_cfg->intr_enable    = false;
-            obj_cfg->intr_type      = PORT_GPIO_DEFAULT_INTR_TYPE;
-            obj_cfg->cb.callback    = PORT_GPIO_DEFAULT_CB_CALLBACK;
-            obj_cfg->cb.user_data   = PORT_GPIO_DEFAULT_CB_USER_DATA;
-            obj_cfg->isr.callback   = PORT_GPIO_DEFAULT_ISR_CALLBACK;
-            obj_cfg->isr.user_data  = PORT_GPIO_DEFAULT_ISR_USER_DATA;
-            port_gpio->isr          = &obj_cfg->isr;
-        }break;
         case XF_HAL_GPIO_CMD_DIRECTION:
         {
             ret = _port_gpio_set_dir(pin, obj_cfg);
