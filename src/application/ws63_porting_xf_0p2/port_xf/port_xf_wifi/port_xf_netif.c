@@ -271,7 +271,6 @@ xf_err_t xf_netif_set_dns_info(
              TAG, "dns_type invalid");
     XF_CHECK(NULL == dns, XF_ERR_INVALID_ARG,
              TAG, "NULL==dns");
-    port_xf_netif_hdl_ctx_t *p_hdl = (port_xf_netif_hdl_ctx_t *)netif_hdl;
 
     xf_err_t xf_ret;
 
@@ -294,7 +293,6 @@ xf_err_t xf_netif_get_dns_info(
              TAG, "dns_type invalid");
     XF_CHECK(NULL == dns, XF_ERR_INVALID_ARG,
              TAG, "NULL==dns");
-    port_xf_netif_hdl_ctx_t *p_hdl = (port_xf_netif_hdl_ctx_t *)netif_hdl;
 
     xf_err_t xf_ret;
 

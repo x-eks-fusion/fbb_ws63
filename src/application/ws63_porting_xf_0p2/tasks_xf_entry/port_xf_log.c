@@ -25,7 +25,6 @@
 /* ==================== [Static Prototypes] ================================= */
 
 static size_t log_backend(char *p_buf, size_t buf_size, xf_log_backend_args_t *p_args);
-static uint32_t log_time(void);
 static int _putchar(int c);
 
 /* ==================== [Static Variables] ================================== */
@@ -37,7 +36,6 @@ static int _putchar(int c);
 void port_xf_log_init(void)
 {
     xf_log_set_backend(log_backend);
-    xf_log_set_time_src(log_time);
     xf_printf_set_putchar(_putchar);
 }
 
@@ -51,11 +49,6 @@ static size_t log_backend(char *p_buf, size_t buf_size, xf_log_backend_args_t *p
     }
     osal_printk("%.*s", buf_size, p_buf);
     return buf_size;
-}
-
-static uint32_t log_time(void)
-{
-    return (uint32_t)uapi_tcxo_get_ms();
 }
 
 static int _putchar(int c)

@@ -31,6 +31,8 @@
 #include "wifi_device.h"
 #include "wifi_event.h"
 #include "wifi_device_config.h"
+#include "wifi_alg.h"
+#include "wifi_hotspot.h"
 
 #include "securec.h"
 
