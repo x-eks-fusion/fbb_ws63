@@ -14,6 +14,7 @@ if (DEFINED CONFIG_WS63_PORTING_XF_V0_2_X)
     
     message("XF_SRCS_STR:       ${XF_SRCS_STR}")
     message("XF_INCS_STR:       ${XF_INCS_STR}")
+    message("XF_CFLAGS_STR:     ${XF_CFLAGS_STR}")
 
     set(XF_SOURCES ${XF_SRCS_STR})
 

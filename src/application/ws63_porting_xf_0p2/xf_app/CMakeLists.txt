@@ -40,6 +40,7 @@ if (DEFINED CONFIG_XF_APP_BUILD_FROM_SOURCE)
 
     set(COMPONENT_CCFLAGS
         "-Wno-error"
+        ${XF_CFLAGS_STR}
     )
 
 else()
