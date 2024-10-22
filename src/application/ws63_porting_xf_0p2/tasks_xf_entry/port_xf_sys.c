@@ -1,12 +1,12 @@
 /**
  * @file port_xf_sys.c
  * @author catcatBlue (catcatblue@qq.com)
- * @brief 
+ * @brief
  * @version 1.0
  * @date 2024-10-10
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
 
 /* ==================== [Includes] ========================================== */
@@ -61,7 +61,7 @@ xf_err_t xf_sys_watchdog_disable(void)
 {
     xf_err_t xf_ret;
     pf_err_t pf_ret;
-    pf_ret = uapi_watchdog_deinit();
+    pf_ret = uapi_watchdog_disable();
     xf_ret = port_convert_pf2xf_err(pf_ret);
     return xf_ret;
 }
