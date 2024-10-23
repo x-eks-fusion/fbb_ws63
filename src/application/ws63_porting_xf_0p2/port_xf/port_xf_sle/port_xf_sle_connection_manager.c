@@ -10,6 +10,10 @@
 #include "xf_sle_connection_manager.h"
 #include "sle_connection_manager.h"
 
+#include "key_id.h"
+#include "nv.h"
+#include "nv_common_cfg.h"
+
 /* ==================== [Defines] =========================================== */
 
 #define TAG "port_sle_ssaps"
@@ -216,6 +220,30 @@ xf_err_t xf_sle_set_max_pwr(int8_t ble_pwr, int8_t sle_pwr)
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
              TAG, "sle_customize_max_pwr failed!:%#X", ret);
     return XF_OK;
+}
+
+#define SLE_MAX_PWR_LEVEL_NUM_MAX   8
+static const int8_t s_map_sle_max_pwr_level[SLE_MAX_PWR_LEVEL_NUM_MAX]={-6, -2, 2, 6, 10, 14, 16, 20};
+// 配置发射功率档位（根据指定的发射功率）
+xf_err_t xf_sle_set_max_pwr_level_by_pwr(int8_t target_max_pwr)
+{
+    uint8_t pwr_level = 0;
+    for(; pwr_level < SLE_MAX_PWR_LEVEL_NUM_MAX; pwr_level++)
+    {
+        if(s_map_sle_max_pwr_level[pwr_level] == target_max_pwr)
+        {
+            break;
+        }
+    }
+    XF_CHECK(pwr_level == SLE_MAX_PWR_LEVEL_NUM_MAX, XF_ERR_INVALID_ARG,
+        TAG, "No matching max_pwr_level!:%d", target_max_pwr);
+
+    btc_power_type_t _btc_power_type = {
+        .btc_max_txpower = pwr_level
+    };
+    errcode_t nv_ret = uapi_nv_write(NV_ID_BTC_TXPOWER_CFG, 
+        (uint8_t *)&_btc_power_type, sizeof(btc_power_type_t));
+    XF_CHECK(nv_ret != ERRCODE_SUCC, XF_ERR_INVALID_ARG, TAG, "WRITE NV_ID_BTC_TXPOWER_CFG failed");
 }
 
 /* ==================== [Static Functions] ================================== */

@@ -11,7 +11,7 @@
 #include "sle_ssap_server.h"
 #include "sle_errcode.h"
 #include "xf_sle_ssap_server.h"
-
+#include "port_sle_transmition_manager.h"
 #include "port_sle_ssap.h"
 
 /* ==================== [Defines] =========================================== */
@@ -66,6 +66,9 @@ xf_err_t xf_sle_ssaps_event_cb_register(
     xf_sle_ssaps_event_t events)
 {
     unused(events);
+    
+    port_sle_flow_ctrl_init();
+
     errcode_t ret = ERRCODE_SUCC;
     s_sle_ssaps_evt_cb = evt_cb;
 
@@ -241,6 +244,12 @@ xf_err_t xf_ble_ssaps_send_response(
         .value = rsp->value,
         .value_len = rsp->value_len,
     };
+
+    while (port_sle_flow_ctrl_state_get(conn_id) == false)
+    {
+        uapi_watchdog_kick();
+    }
+
     xf_err_t ret = ssaps_send_response(app_id, conn_id, &param);
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
              TAG, "ssaps_send_response failed!:%#X", ret);
@@ -287,6 +296,12 @@ xf_err_t xf_sle_ssaps_send_notify_indicate(
         .value = param->value,
         .value_len = param->value_len,
     };
+
+    while (port_sle_flow_ctrl_state_get(conn_id) == false)
+    {
+        uapi_watchdog_kick();
+    }
+    
     xf_err_t ret = ssaps_notify_indicate(app_id, conn_id, &param_ntf_ind);
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
              TAG, "ssaps_notify_indicate failed!:%#X", ret);

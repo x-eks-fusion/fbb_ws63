@@ -11,7 +11,6 @@ set(PUBLIC_HEADER
 
 add_subdirectory_if_exist(port_xf_ringbuf)
 add_subdirectory_if_exist(port_utils)
-add_subdirectory_if_exist(port_xf_at)
 add_subdirectory_if_exist(port_xf_ble)
 # add_subdirectory_if_exist(port_xf_event)
 add_subdirectory_if_exist(port_xf_gpio)

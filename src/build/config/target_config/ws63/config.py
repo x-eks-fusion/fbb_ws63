@@ -93,7 +93,6 @@ target = {
             'tasks_xf_entry',
             "port_xf_ringbuf",
             "port_utils",
-            "port_xf_at",
             "port_xf_ble",
             # "port_xf_event",
             "port_xf_gpio",

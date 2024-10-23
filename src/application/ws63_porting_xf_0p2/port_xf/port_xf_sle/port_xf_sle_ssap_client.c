@@ -11,7 +11,7 @@
 #include "xf_sle_connection_manager.h"
 #include "xf_sle_device_discovery.h"
 #include "xf_sle_ssap_client.h"
-
+#include "port_sle_transmition_manager.h"
 #include "sle_connection_manager.h"
 #include "sle_device_discovery.h"
 #include "sle_ssap_client.h"
@@ -92,12 +92,14 @@ static xf_list_t s_queue_find_struct = XF_LIST_HEAD_INIT(s_queue_find_struct);
 
 /* ==================== [Global Functions] ================================== */
 
-
 xf_err_t xf_sle_ssapc_event_cb_register(
     xf_sle_ssapc_event_cb_t evt_cb,
     xf_sle_ssapc_event_t events)
 {
     unused(events);
+
+    port_sle_flow_ctrl_init();
+
     errcode_t ret = ERRCODE_SUCC;
     s_sle_ssapc_evt_cb = evt_cb;
 
@@ -134,7 +136,6 @@ xf_err_t xf_sle_ssapc_event_cb_register(
              TAG, "ssapc_register_callbacks failed!:%#X", ret);
     return XF_OK;
 }
-
 
 // 注册ssap客户端
 xf_err_t xf_sle_ssapc_register_app(
@@ -272,6 +273,12 @@ xf_err_t xf_sle_ssapc_request_write_data(
         .handle = handle,
         .type = type,
     };
+
+    while (port_sle_flow_ctrl_state_get(conn_id) == false)
+    {
+        uapi_watchdog_kick();
+    }
+
     xf_err_t ret = ssapc_write_req(app_id, conn_id, &param);
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
              TAG, "ssapc_write_req failed!:%#X", ret);
@@ -290,6 +297,12 @@ xf_err_t xf_sle_ssapc_request_write_cmd(
         .handle = handle,
         .type = type,
     };
+    
+    while (port_sle_flow_ctrl_state_get(conn_id) == false)
+    {
+        uapi_watchdog_kick();
+    }
+
     xf_err_t ret = ssapc_write_cmd(app_id, conn_id, &param);
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
              TAG, "ssapc_write_req failed!:%#X", ret);
@@ -310,7 +323,6 @@ xf_err_t xf_sle_ssapc_request_exchange_info(
              TAG, "ssapc_exchange_info_req failed!:%#X", ret);
     return XF_OK;
 }
-
 
 /* ==================== [Static Functions] ================================== */
 

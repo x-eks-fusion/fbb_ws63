@@ -14,9 +14,6 @@ build_component()
 set(COMPONENT_NAME "port_utils")
 build_component()
 
-set(COMPONENT_NAME "port_xf_at")
-build_component()
-
 set(COMPONENT_NAME "port_xf_ble")
 build_component()
 
