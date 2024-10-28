@@ -352,7 +352,7 @@ xf_err_t xf_wifi_ap_init(const xf_wifi_ap_cfg_t *p_cfg)
     osal_kthread_unlock();
 
     XF_LOGD(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
-            wifi_config.ap.ssid, wifi_config.ap.password, wifi_config.ap.channel);
+            p_cfg->ssid, p_cfg->password, p_cfg->channel);
 
     ctx_w()->b_ap_start = true;
 
