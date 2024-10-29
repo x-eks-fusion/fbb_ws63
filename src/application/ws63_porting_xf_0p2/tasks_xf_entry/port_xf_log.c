@@ -15,7 +15,6 @@
 #include "xf_init.h"
 #include "osal_debug.h"
 #include "tcxo.h"
-#include "port_xf_log.h"
 
 /* ==================== [Defines] =========================================== */
 
