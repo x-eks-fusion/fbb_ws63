@@ -49,6 +49,9 @@
 #define WIFI_IFNAME_MAX_SIZE        16
 #define WIFI_SCAN_AP_LIMIT          64
 
+#define WAIT_CONN_SLEEP_TIME_MS     10
+#define WAIT_CONN_SLEEP_COUNT_MAX   100
+
 /*
     default max num of station.CNcomment:默认支持的station最大个数.CNend
     见 src/protocol/wifi/source/host/inc/liteOS/soc_wifi_api.h
@@ -144,8 +147,10 @@ xf_err_t xf_wifi_enable(void)
         return XF_ERR_INITED;
     }
 
+    (void)osDelay(10); /* 1: 等待100ms后判断状态 */
     /* 等待wifi初始化完成 */
     while (wifi_is_wifi_inited() == 0) {
+        wifi_init();
         (void)osDelay(10); /* 1: 等待100ms后判断状态 */
     }
 
@@ -160,7 +165,11 @@ xf_err_t xf_wifi_disable(void)
         return XF_ERR_UNINIT;
     }
 
-    wifi_deinit();
+    /*
+        FIXME 目前发现反初始化 wifi 有概率导致 task:tcpip_thread 崩溃，
+        因此不反初始化 wifi
+     */
+    // wifi_deinit();
 
     ctx_w()->b_inited = false;
     return XF_OK;
@@ -278,20 +287,20 @@ xf_err_t xf_wifi_ap_init(const xf_wifi_ap_cfg_t *p_cfg)
     pf_ret = wifi_set_softap_config_advance(&config);
     if (ERRCODE_SUCC != pf_ret) {
         XF_LOGE(TAG, "wifi_set_softap_config_advance() failed.");
-        return XF_FAIL;
+        goto l_err;
     }
 
     /* 启动SoftAp接口 */
     if (wifi_softap_enable(&hapd_conf) != 0) {
         XF_LOGE(TAG, "wifi_softap_enable failed() failed.");
-        return XF_FAIL;
+        goto l_err;
     }
 
     pf_ret = uapi_wifi_set_bandwidth(__IFNAME_AP, strlen(__IFNAME_AP) + 1,
                                      EXT_WIFI_BW_LEGACY_20M);
     if (ERRCODE_SUCC != pf_ret) {
         XF_LOGE(TAG, "uapi_wifi_set_bandwidth() failed.");
-        return XF_FAIL;
+        goto l_err;
     }
 
     ctx_w()->b_ap_start = true;
@@ -339,6 +348,7 @@ xf_err_t xf_wifi_ap_init(const xf_wifi_ap_cfg_t *p_cfg)
         }
     }
 
+    osal_mutex_init(&ctx_w()->ap_task_mtx);
     osal_kthread_lock();
     ctx_w()->ap_task_handle = osal_kthread_create(
                                   (osal_kthread_handler)softap_task,
@@ -370,10 +380,14 @@ xf_err_t xf_wifi_ap_deinit(void)
         return XF_ERR_UNINIT;
     }
 
+    osal_mutex_lock_timeout(&ctx_w()->ap_task_mtx, OSAL_WAIT_FOREVER);
     osal_kthread_destroy(ctx_w()->ap_task_handle, 0);
+    osal_msleep(200);
 
     wifi_softap_disable();
     port_ap_netif_deinit();
+
+    osal_mutex_destroy(&ctx_w()->ap_task_mtx);
 
     ctx_w()->b_ap_start = false;
     return XF_OK;
@@ -597,6 +611,11 @@ xf_err_t xf_wifi_sta_connect(xf_wifi_sta_cfg_t *p_cfg)
             memcpy_s(ctx_w()->expected_bss.pre_shared_key,  ARRAY_SIZE(ctx_w()->expected_bss.pre_shared_key),
                      p_cfg->password,                       ARRAY_SIZE(p_cfg->password));
             ctx_w()->expected_bss.security_type    = port_convert_xf2pf_wifi_auth_mode(p_cfg->authmode);
+            if (p_cfg->bssid_set) {
+                memcpy_s(ctx_w()->expected_bss.bssid,   ARRAY_SIZE(ctx_w()->expected_bss.bssid),
+                         p_cfg->bssid,                  ARRAY_SIZE(p_cfg->bssid));
+            }
+            ctx_w()->expected_bss.channel = p_cfg->channel;
         }
         pf_ret = wifi_sta_connect(&ctx_w()->expected_bss);
         xf_ret = port_convert_pf2xf_err(pf_ret);
@@ -607,11 +626,13 @@ xf_err_t xf_wifi_sta_connect(xf_wifi_sta_cfg_t *p_cfg)
 
 bool xf_wifi_sta_is_connected(void)
 {
-    /*
-        TODO 这种判断方式似乎不是特别可靠
-        或改成 wifi_sta_get_ap_info()
-     */
-    return ctx_w()->b_sta_connected;
+    xf_err_t xf_ret;
+    pf_err_t pf_ret;
+    wifi_linked_info_stru ap_info = {0};
+    pf_ret = wifi_sta_get_ap_info(&ap_info);
+    xf_ret = port_convert_pf2xf_err(pf_ret);
+    return ((WIFI_CONNECTED == ap_info.conn_state)
+            && (XF_OK == xf_ret));
 }
 
 xf_err_t xf_wifi_sta_disconnect(void)
@@ -648,34 +669,42 @@ xf_err_t xf_wifi_scan_start(const xf_wifi_scan_cfg_t *p_cfg, bool block)
 {
     XF_CHECK(NULL == p_cfg, XF_ERR_INVALID_ARG,
              TAG, "NULL==p_cfg");
-    XF_CHECK(0 == p_cfg->channel, XF_ERR_INVALID_ARG,
-             TAG, "Full channel scanning is not supported.");
 
-    if (ctx_w()->b_scanning) {
-        return XF_ERR_BUSY;
-    }
+    /* FIXME 已连接状态下不会触发 _scan_state_changed_handler, 导致 b_scanning 不会修改 */
+    // if (ctx_w()->b_scanning) {
+    //     return XF_ERR_BUSY;
+    // }
     ctx_w()->b_scanning = true;
 
     xf_err_t xf_ret;
     pf_err_t pf_ret;
-    wifi_scan_params_stru scan_config = {0};
-    UNUSED(scan_config.ssid);
-    UNUSED(scan_config.ssid_len);
-    UNUSED(scan_config.bssid);
-    scan_config.channel_num     = p_cfg->channel;
-    ctx_w()->scanning_ch        = p_cfg->channel;
-    /*
-        TODO 全通道扫描未测试。
-     */
-    scan_config.scan_type       = (0 == p_cfg->channel)
-                                  ? (WIFI_BASIC_SCAN)
-                                  : (WIFI_CHANNEL_SCAN);
-    pf_ret = wifi_sta_scan_advance(&scan_config);
+    if (0 == p_cfg->channel) {
+        pf_ret = wifi_sta_scan();
+    } else {
+        wifi_scan_params_stru scan_config = {0};
+        UNUSED(scan_config.ssid);
+        UNUSED(scan_config.ssid_len);
+        UNUSED(scan_config.bssid);
+        scan_config.channel_num     = p_cfg->channel;
+        scan_config.scan_type       = WIFI_CHANNEL_SCAN;
+        pf_ret = wifi_sta_scan_advance(&scan_config);
+    }
     xf_ret = port_convert_pf2xf_err(pf_ret);
+    UNUSED(block);
     if (block) {
+        int count = 0;
+        /* FIXME 已连接状态下不会触发 _scan_state_changed_handler */
         while (true == ctx_w()->b_scanning) {
-            osal_msleep(10);
+            osal_msleep(WAIT_CONN_SLEEP_TIME_MS);
+            count++;
+            if (count >= WAIT_CONN_SLEEP_COUNT_MAX) {
+                xf_ret = XF_ERR_TIMEOUT;
+                xf_wifi_scan_stop();
+                xf_wifi_scan_clear_result();
+                break;
+            }
         }
+        ctx_w()->b_scanning = false;
     }
     return xf_ret;
 }
@@ -684,6 +713,7 @@ xf_err_t xf_wifi_scan_stop(void)
 {
     xf_err_t xf_ret;
     pf_err_t pf_ret;
+    ctx_w()->b_scanning = false;
     pf_ret = wifi_sta_scan_stop();
     xf_ret = port_convert_pf2xf_err(pf_ret);
     return xf_ret;
@@ -710,7 +740,7 @@ xf_err_t xf_wifi_scan_get_result(
 
     uint32_t size_min = min((uint32_t)ctx_w()->scan_result_size, result_size);
 
-    td_u32 scan_len = sizeof(wifi_scan_info_stru) * result_size;
+    uint32_t scan_len = sizeof(wifi_scan_info_stru) * size_min;
     wifi_scan_info_stru *result_tmp = osal_kmalloc(scan_len, OSAL_GFP_ATOMIC);
     if (result_tmp == TD_NULL) {
         return XF_ERR_NO_MEM;
@@ -740,6 +770,7 @@ xf_err_t xf_wifi_scan_clear_result(void)
 {
     xf_err_t xf_ret;
     pf_err_t pf_ret;
+    ctx_w()->scan_result_size = 0;
     pf_ret = wifi_sta_scan_result_clear();
     xf_ret = port_convert_pf2xf_err(pf_ret);
     return xf_ret;
@@ -759,6 +790,7 @@ static void *softap_task(const char *arg)
     uint8_t *p_mac = NULL;
 
     xf_ip_event_id_t xf_eid = XF_IP_EVENT_IP_ASSIGNED;
+    uint32_t osal_ret = OSAL_FAILURE;
 
     for (;;) {
 
@@ -768,8 +800,12 @@ static void *softap_task(const char *arg)
             continue;
         }
 
-        netif_p = netif_find(__IFNAME_AP);
+        netif_p = ctx_w()->netif_ap.pf_netif;
         if (netif_p == TD_NULL) {
+            continue;
+        }
+
+        if (!osal_mutex_trylock(&ctx_w()->ap_task_mtx)) {
             continue;
         }
 
@@ -790,6 +826,8 @@ static void *softap_task(const char *arg)
                 ctx_w()->ap_ip_cb(xf_eid, &ip_assigned, ctx_w()->ap_ip_user_args);
             }
         }
+
+        osal_mutex_unlock(&ctx_w()->ap_task_mtx);
     }
 
     return NULL;
@@ -801,10 +839,18 @@ static void _sta_ip_assigned_handler(struct netif *netif_p)
         TODO 添加 XF_IP_EVENT_LOST_IP 事件支持
         TODO XF_IP_EVENT_GOT_IP6 暂未规划
      */
-    if (netif_is_up(netif_p) && netif_p->ip_addr.u_addr.ip4.addr) {
+    if (netif_is_up(netif_p)) {
         if (!ctx_w()->sta_ip_cb) {
             return;
         }
+        if (netif_p->ip_addr.u_addr.ip4.addr == ctx_w()->ip_curr.addr) {
+            /* ip 地址未改变，忽略事件 */
+            return;
+        }
+
+        /* ip_prev 暂时无用，之后用于指示 ip 是否改变（除了 0 地址） */
+        ctx_w()->ip_prev.addr = ctx_w()->ip_curr.addr;
+        ctx_w()->ip_curr.addr = netif_p->ip_addr.u_addr.ip4.addr;
 
         xf_ip_event_id_t xf_eid;
         xf_ip_event_got_ip_t got_ip = {0};
@@ -821,8 +867,9 @@ static void _scan_state_changed_handler(int state, int size)
 {
     xf_wifi_event_id_t xf_eid;
     xf_eid = XF_WIFI_EVENT_SCAN_DONE;
-    if ((state == WIFI_STATE_AVALIABLE)) {
-        ctx_w()->b_scanning         = false;
+    XF_LOGD(TAG, "scan_state_changed: state: %d, size: %d", state, size);
+    ctx_w()->b_scanning         = false;
+    if (state == WIFI_STATE_AVALIABLE) {
         ctx_w()->scan_result_size   = size;
         if (!ctx_w()->sta_cb) {
             return;

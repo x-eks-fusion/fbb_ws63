@@ -250,7 +250,7 @@ xf_err_t xf_netif_dhcps_get_clients_by_mac(
                        &ip_addr);
         if (ERR_OK == lwip_ret) {
             /* TODO 暂未支持 ipv6 */
-            mac_ip_pair_array[i].ip.addr = ip_addr.u_addr.ip4.addr;
+            mac_ip_pair_array[i].ip.addr = xf_netif_htonl(ip_addr.u_addr.ip4.addr);
         } else {
             XF_LOGW(TAG, "netifapi_dhcps_get_client_ip-%d", (int)lwip_ret);
         }
