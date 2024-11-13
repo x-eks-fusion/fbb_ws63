@@ -275,8 +275,12 @@ xf_err_t xf_netif_set_dns_info(
     xf_err_t xf_ret;
 
     ip_addr_t dnsserver;
-    dnsserver.type = IPADDR_TYPE_V4;
-    dnsserver.u_addr.ip4.addr = dns->ip.u_addr.ip4.addr;
+    dnsserver.type = dns->ip.type;
+    if (IPADDR_TYPE_V4 == dns->ip.type) {
+        dnsserver.u_addr.ip4.addr = dns->ip.u_addr.ip4.addr;
+    } else {
+        xf_memcpy(&dnsserver.u_addr.ip6, &dns->ip.u_addr.ip6, sizeof(dnsserver.u_addr.ip6));
+    }
     err_t lwip_ret;
     lwip_ret = lwip_dns_setserver(type, &dnsserver);
     xf_ret = (ERR_OK == lwip_ret) ? (XF_OK) : (XF_FAIL);
@@ -299,8 +303,12 @@ xf_err_t xf_netif_get_dns_info(
     ip_addr_t dnsserver;
     err_t lwip_ret;
     lwip_ret = lwip_dns_getserver(type, &dnsserver);
-    dnsserver.type = IPADDR_TYPE_V4;
-    dns->ip.u_addr.ip4.addr = dnsserver.u_addr.ip4.addr;
+    dns->ip.type = dnsserver.type;
+    if (IPADDR_TYPE_V4 == dns->ip.type) {
+        dns->ip.u_addr.ip4.addr = dnsserver.u_addr.ip4.addr;
+    } else {
+        xf_memcpy(&dns->ip.u_addr.ip6, &dnsserver.u_addr.ip6, sizeof(dnsserver.u_addr.ip6));
+    }
     xf_ret = (ERR_OK == lwip_ret) ? (XF_OK) : (XF_FAIL);
 
     return xf_ret;
