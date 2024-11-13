@@ -209,7 +209,7 @@ xf_err_t xf_sle_ssapc_discover_service(
             xf_ret = XF_OK;
             break;
         }
-        osal_mdelay(INTERVAL_MS_CHECK_ATTR_ADD);
+        osal_msleep(INTERVAL_MS_CHECK_ATTR_ADD);
         ++cnt_timeout;
     }
 

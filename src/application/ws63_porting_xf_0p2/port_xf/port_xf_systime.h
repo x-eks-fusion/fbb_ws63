@@ -13,7 +13,7 @@
 
 /* ==================== [Macros] ============================================ */
 
-#define xf_delay_ms(ms)  osal_mdelay(ms)
+#define xf_sleep_ms(ms)  osal_msleep(ms)
 
 
 #endif /* __PORT_XF_SYSTIME_H__ */

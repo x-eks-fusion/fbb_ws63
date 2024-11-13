@@ -326,7 +326,7 @@ static void *i2c_task(const char *arg)
     {
         if( xf_list_empty(&port_i2c->tasks_info.queue) == true )
         {
-            xf_delay_ms(10);
+            xf_sleep_ms(10);
             continue;
         }
         xf_list_for_each_entry_safe(task, temp, &port_i2c->tasks_info.queue,
@@ -568,7 +568,7 @@ static inline int port_i2c_master_read(
             break;
         }
 
-        xf_delay_ms(I2C_CHECK_INTERVAL_MS);
+        xf_sleep_ms(I2C_CHECK_INTERVAL_MS);
         ms_now = uapi_tcxo_get_ms();
         if ( (ms_now - ms_start) >= timeout_ms )
         {
@@ -626,7 +626,7 @@ static inline xf_err_t port_i2c_master_read_reg(
             break;
         }
 
-        xf_delay_ms(I2C_CHECK_INTERVAL_MS);
+        xf_sleep_ms(I2C_CHECK_INTERVAL_MS);
         ms_now = uapi_tcxo_get_ms();
         if ( (ms_now - ms_start) >= timeout_ms )
         {
@@ -682,7 +682,7 @@ static inline xf_err_t port_i2c_master_write(
             break;
         }
 
-        xf_delay_ms(I2C_CHECK_INTERVAL_MS);
+        xf_sleep_ms(I2C_CHECK_INTERVAL_MS);
         ms_now = uapi_tcxo_get_ms();
         if ( (ms_now - ms_start) >= timeout_ms )
         {
@@ -740,7 +740,7 @@ static inline xf_err_t port_i2c_master_write_reg(
             break;
         }
 
-        xf_delay_ms(I2C_CHECK_INTERVAL_MS);
+        xf_sleep_ms(I2C_CHECK_INTERVAL_MS);
         ms_now = uapi_tcxo_get_ms();
         if ( (ms_now - ms_start) >= timeout_ms )
         {
