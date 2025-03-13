@@ -1,5 +1,9 @@
 /* ==================== [Includes] ========================================== */
 
+#include "xfconfig.h"
+
+#if (CONFIG_XF_SLE_ENABLE)
+
 #include "xf_utils.h"
 #include "xf_init.h"
 #include "xf_heap.h"
@@ -7,6 +11,7 @@
 
 #include "common_def.h"
 #include "soc_osal.h"
+#include "watchdog.h"
 
 #include "xf_sle_connection_manager.h"
 #include "xf_sle_device_discovery.h"
@@ -44,13 +49,6 @@ static void port_sle_connect_param_update_cb(
     uint16_t conn_id, errcode_t status,
     const sle_connection_param_update_evt_t *param);
 
-static void port_sle_connect_param_update_req_cb(
-    uint16_t conn_id, errcode_t status,
-    const sle_connection_param_update_req_t *param);
-
-
-static void port_sle_start_seek_cb(errcode_t status);
-static void port_sle_stop_seek_cb(errcode_t status);
 static void port_sle_seek_result_cb(
     sle_seek_result_info_t *seek_result_data);
 
@@ -65,6 +63,10 @@ static void port_ssapc_find_property_cb(
     uint8_t client_id, uint16_t conn_id,
     ssapc_find_property_result_t *property, errcode_t status);
 
+static void  port_ssapc_exchange_info_cb(
+    uint8_t client_id, uint16_t conn_id, 
+    ssap_exchange_info_t *info,
+    errcode_t status);
 static void port_ssapc_read_cfm_cb(
     uint8_t client_id, uint16_t conn_id,
     ssapc_handle_value_t *read_data,
@@ -92,6 +94,14 @@ static xf_list_t s_queue_find_struct = XF_LIST_HEAD_INIT(s_queue_find_struct);
 
 /* ==================== [Global Functions] ================================== */
 
+static void sle_sample_update_req_cbk(uint16_t conn_id, errcode_t status, const sle_connection_param_update_req_t *param)
+{
+    unused(conn_id);
+    unused(status);
+    printf("[ssap] sle_sample_update_req_cbk interval_min = %02x, interval_max = %02x\n",
+        param->interval_min, param->interval_max);
+}
+
 xf_err_t xf_sle_ssapc_event_cb_register(
     xf_sle_ssapc_event_cb_t evt_cb,
     xf_sle_ssapc_event_t events)
@@ -105,16 +115,14 @@ xf_err_t xf_sle_ssapc_event_cb_register(
 
     sle_connection_callbacks_t conn_cbs = {
         .connect_state_changed_cb = port_sle_connect_state_changed_cb,
+        .connect_param_update_req_cb = sle_sample_update_req_cbk,
         .connect_param_update_cb = port_sle_connect_param_update_cb,
-        .connect_param_update_req_cb = port_sle_connect_param_update_req_cb,
     };
     ret = sle_connection_register_callbacks(&conn_cbs);
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
              TAG, "sle_connection_register_callbacks failed!:%#X", ret);
 
     sle_announce_seek_callbacks_t seek_cbs = {
-        .seek_enable_cb = port_sle_start_seek_cb,
-        .sle_disable_cb = port_sle_stop_seek_cb,
         .seek_result_cb = port_sle_seek_result_cb,
     };
     ret = sle_announce_seek_register_callbacks(&seek_cbs);
@@ -126,6 +134,7 @@ xf_err_t xf_sle_ssapc_event_cb_register(
         .find_structure_cmp_cb = port_ssapc_find_struct_cmpl_cb,
         .ssapc_find_property_cbk = port_ssapc_find_property_cb,
 
+        .exchange_info_cb = port_ssapc_exchange_info_cb,
         .read_cfm_cb = port_ssapc_read_cfm_cb,
         .write_cfm_cb = port_ssapc_write_cfm_cb,
         .notification_cb = port_ssapc_notification_cb,
@@ -172,11 +181,11 @@ xf_err_t xf_sle_ssapc_discover_service(
 
     /* UUID 为非 0 值则表示指定 UUID */
     task->is_specific_uuid = false;
-    if (strncmp((char *)uuid_zero.uuid, (char *)param->uuid.uuid128, param->uuid.len_type) != 0) {
+    if (strncmp((char *)uuid_zero.uuid, (char *)param->uuid.uuid128, param->uuid.type) != 0) {
         task->is_specific_uuid = true;
     }
     task->start_hdl = param->start_hdl;
-    task->end_hdl = task->end_hdl;
+    task->end_hdl = param->end_hdl;
     PORT_SLE_SET_WS63_UUID_FROM_XF_UUID(&task->uuid, &param->uuid);
     xf_list_add_tail(&task->link, &s_queue_find_struct);
 
@@ -188,7 +197,6 @@ xf_err_t xf_sle_ssapc_discover_service(
         .reserve = param->reserve,
     };
     PORT_SLE_SET_WS63_UUID_FROM_XF_UUID(&struct_found.uuid, &param->uuid);
-
 
     xf_err_t ret = ssapc_find_structure(
                        app_id, conn_id, &struct_found);
@@ -279,9 +287,9 @@ xf_err_t xf_sle_ssapc_request_write_data(
         uapi_watchdog_kick();
     }
 
-    xf_err_t ret = ssapc_write_req(app_id, conn_id, &param);
+    errcode_t ret = ssapc_write_req(app_id, conn_id, &param);
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
-             TAG, "ssapc_write_req failed!:%#X", ret);
+             TAG, "ssapc_write_req failed!:%d", ret);
     return XF_OK;
 }
 
@@ -345,7 +353,7 @@ static void port_sle_connect_state_changed_cb(
             },
         };
         memcpy(cb_param.connect.peer_addr.addr, addr->addr, XF_SLE_ADDR_LEN);
-        s_sle_ssapc_evt_cb(XF_SLE_CONN_EVT_CONNECT, &cb_param);
+        s_sle_ssapc_evt_cb(XF_SLE_COMMON_EVT_CONNECT, &cb_param);
     } else {
         xf_sle_ssapc_evt_cb_param_t cb_param = {
             .disconnect =
@@ -357,7 +365,7 @@ static void port_sle_connect_state_changed_cb(
             },
         };
         memcpy(cb_param.connect.peer_addr.addr, addr->addr, XF_SLE_ADDR_LEN);
-        s_sle_ssapc_evt_cb(XF_SLE_CONN_EVT_DISCONNECT, &cb_param);
+        s_sle_ssapc_evt_cb(XF_SLE_COMMON_EVT_DISCONNECT, &cb_param);
     }
 }
 
@@ -369,7 +377,7 @@ static void port_sle_connect_param_update_cb(
     if (s_sle_ssapc_evt_cb == NULL) {
         return;
     }
-
+    XF_LOGD(TAG,"CONN PARAM UPD, conn_id:%d, interval = %02x\n", conn_id, param->interval);
     xf_sle_ssapc_evt_cb_param_t cb_param = {
         .conn_param_update =
         {
@@ -379,53 +387,7 @@ static void port_sle_connect_param_update_cb(
             .supervision_timeout = param->supervision,
         }
     };
-    s_sle_ssapc_evt_cb(XF_SLE_CONN_EVT_CONN_PARAMS_UPDATE, &cb_param);
-}
-
-static void port_sle_connect_param_update_req_cb(
-    uint16_t conn_id, errcode_t status,
-    const sle_connection_param_update_req_t *param)
-{
-    unused(status);
-    if (s_sle_ssapc_evt_cb == NULL) {
-        return;
-    }
-
-    xf_sle_ssapc_evt_cb_param_t cb_param = {
-        .req_conn_param_update =
-        {
-            .conn_id = conn_id,
-            .interval_min = param->interval_min,
-            .interval_max = param->interval_max,
-            .max_latency = param->max_latency,
-            .supervision_timeout = param->supervision_timeout,
-        }
-    };
-    s_sle_ssapc_evt_cb(XF_SLE_CONN_EVT_REQ_CONN_PARAMS_UPDATE, &cb_param);
-}
-
-static void port_sle_start_seek_cb(errcode_t status)
-{
-    unused(status);
-    if (s_sle_ssapc_evt_cb == NULL) {
-        return;
-    }
-    xf_sle_ssapc_evt_cb_param_t cb_param = {
-        0
-    };
-    s_sle_ssapc_evt_cb(XF_SLE_SEEK_EVT_START, &cb_param);
-}
-
-static void port_sle_stop_seek_cb(errcode_t status)
-{
-    unused(status);
-    if (s_sle_ssapc_evt_cb == NULL) {
-        return;
-    }
-    xf_sle_ssapc_evt_cb_param_t cb_param = {
-        0
-    };
-    s_sle_ssapc_evt_cb(XF_SLE_SEEK_EVT_STOP, &cb_param);
+    s_sle_ssapc_evt_cb(XF_SLE_COMMON_EVT_CONN_PARAMS_UPDATE, &cb_param);
 }
 
 static void port_sle_seek_result_cb(sle_seek_result_info_t *seek_result_data)
@@ -448,7 +410,7 @@ static void port_sle_seek_result_cb(sle_seek_result_info_t *seek_result_data)
     memcpy(cb_param.seek_result.peer_addr.addr, seek_result_data->addr.addr, XF_SLE_ADDR_LEN);
     memcpy(cb_param.seek_result.direct_addr.addr, seek_result_data->direct_addr.addr, XF_SLE_ADDR_LEN);
 
-    s_sle_ssapc_evt_cb(XF_SLE_SEEK_EVT_RESULT, &cb_param);
+    s_sle_ssapc_evt_cb(XF_SLE_COMMON_EVT_SEEK_RESULT, &cb_param);
 }
 
 static void port_ssapc_find_struct_cb(
@@ -459,7 +421,6 @@ static void port_ssapc_find_struct_cb(
     unused(conn_id);
     unused(status);
 
-    XF_LOGI(TAG, "port_ssapc_find_struct_cb");
     port_discover_service_node_t *task, *temp;
     xf_list_for_each_entry_safe(task, temp, &s_queue_find_struct, port_discover_service_node_t, link) {
         /* 无指定 UUID  */
@@ -494,11 +455,35 @@ static void port_ssapc_find_property_cb(
     ssapc_find_property_result_t *property, errcode_t status)
 {
     unused(status);
-    XF_LOGI(TAG, "find_property_cb:app_id:%d,"
+    XF_LOGD(TAG, "find_property_cb:app_id:%d,"
             "conn_id:%d,uuid:%#X,hdl:%d,desc_cnt:%d",
             client_id, conn_id, *((uint16_t *)property->uuid.uuid),
             property->handle, property->descriptors_count
            );
+}
+
+static void  port_ssapc_exchange_info_cb(
+    uint8_t client_id, uint16_t conn_id, 
+    ssap_exchange_info_t *info,
+    errcode_t status)
+{
+    unused(client_id);
+    unused(status);
+    XF_LOGD(TAG, "exchange_info_cb:app_id:%d,conn_id:%d",
+            client_id, conn_id);
+    if (s_sle_ssapc_evt_cb == NULL) {
+        return;
+    }
+    xf_sle_ssapc_evt_cb_param_t cb_param = {
+        .info =
+        {
+            .app_id = client_id,
+            .conn_id = conn_id,
+            .mtu_size = info->mtu_size,
+            .version = info->version,
+        }
+    };
+    s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_EXCHANGE_INFO, &cb_param);
 }
 
 static void port_ssapc_read_cfm_cb(
@@ -514,7 +499,7 @@ static void port_ssapc_read_cfm_cb(
         return;
     }
     xf_sle_ssapc_evt_cb_param_t cb_param = {
-        .req_read =
+        .read_cfm =
         {
             .conn_id = conn_id,
             .type = read_data->type,
@@ -523,7 +508,7 @@ static void port_ssapc_read_cfm_cb(
             .data_len = read_data->data_len,
         }
     };
-    s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_RECV_READ_CFM, &cb_param);
+    s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_READ_CFM, &cb_param);
 
 }
 
@@ -540,14 +525,14 @@ static void port_ssapc_write_cfm_cb(
         return;
     }
     xf_sle_ssapc_evt_cb_param_t cb_param = {
-        .req_write =
+        .write_cfm =
         {
             .conn_id = conn_id,
             .type = write_result->type,
             .handle = write_result->handle,
         }
     };
-    s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_RECV_WRITE_CFM, &cb_param);
+    s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_WRITE_CFM, &cb_param);
 }
 
 void port_ssapc_notification_cb(
@@ -598,3 +583,5 @@ void port_ssapc_indication_cb(
     };
     s_sle_ssapc_evt_cb(XF_SLE_SSAPC_EVT_INDICATION, &cb_param);
 }
+
+#endif  // CONFIG_XF_SLE_ENABLE

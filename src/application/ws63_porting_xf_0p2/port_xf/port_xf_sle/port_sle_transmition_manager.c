@@ -1,5 +1,9 @@
 /* ==================== [Includes] ========================================== */
 
+#include "xfconfig.h"
+
+#if (CONFIG_XF_SLE_ENABLE)
+
 #include "xf_utils.h"
 #include "xf_init.h"
 #include "string.h"
@@ -69,3 +73,4 @@ static void sle_send_data_cbk(uint16_t conn_id, sle_link_qos_state_t link_state)
 
 #endif
 
+#endif  // CONFIG_XF_SLE_ENABLE

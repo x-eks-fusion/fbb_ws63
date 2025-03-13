@@ -1,5 +1,9 @@
 /* ==================== [Includes] ========================================== */
 
+#include "xfconfig.h"
+
+#if (CONFIG_XF_SLE_ENABLE)
+
 #include "xf_utils.h"
 #include "xf_init.h"
 #include "string.h"
@@ -248,3 +252,5 @@ xf_err_t xf_sle_set_max_pwr_level_by_pwr(int8_t target_max_pwr)
 
 /* ==================== [Static Functions] ================================== */
 
+
+#endif  // CONFIG_XF_SLE_ENABLE

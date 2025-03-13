@@ -1,5 +1,9 @@
 /* ==================== [Includes] ========================================== */
 
+#include "xfconfig.h"
+
+#if (CONFIG_XF_SLE_ENABLE)
+
 #include "xf_utils.h"
 #include "xf_init.h"
 #include "string.h"
@@ -31,19 +35,10 @@ static void port_sle_connect_param_update_cb(
     uint16_t conn_id, errcode_t status,
     const sle_connection_param_update_evt_t *param);
 
-static void port_sle_connect_param_update_req_cb(
-    uint16_t conn_id, errcode_t status,
-    const sle_connection_param_update_req_t *param);
-
-static void port_sle_announce_enable_cb(
-    uint32_t announce_id, errcode_t status);
-static void port_sle_announce_disable_cb(
-    uint32_t announce_id, errcode_t status);
-static void port_sle_announce_terminal_cb(uint32_t announce_id);
-
-static void port_ssaps_add_service_cb(
-    uint8_t server_id, sle_uuid_t *uuid,
-    uint16_t handle, errcode_t status);
+static void  port_ssaps_exchange_info_cb(
+    uint8_t client_id, uint16_t conn_id, 
+    ssap_exchange_info_t *info,
+    errcode_t status);
 static void port_ssaps_read_request_cb(
     uint8_t server_id, uint16_t conn_id,
     ssaps_req_read_cb_t *read_cb_para,
@@ -61,6 +56,14 @@ static xf_sle_ssaps_event_cb_t s_sle_ssaps_evt_cb = NULL;
 
 /* ==================== [Global Functions] ================================== */
 
+static void sle_sample_update_req_cbk(uint16_t conn_id, errcode_t status, const sle_connection_param_update_req_t *param)
+{
+    unused(conn_id);
+    unused(status);
+    XF_LOGD(TAG, "CONN PARAM UPD REQ, interval_min = %02x, interval_max = %02x\r\n",
+        param->interval_min, param->interval_max);
+}
+
 xf_err_t xf_sle_ssaps_event_cb_register(
     xf_sle_ssaps_event_cb_t evt_cb,
     xf_sle_ssaps_event_t events)
@@ -74,26 +77,17 @@ xf_err_t xf_sle_ssaps_event_cb_register(
 
     sle_connection_callbacks_t conn_cbs = {
         .connect_state_changed_cb = port_sle_connect_state_changed_cb,
+        .connect_param_update_req_cb = sle_sample_update_req_cbk,
         .connect_param_update_cb = port_sle_connect_param_update_cb,
-        .connect_param_update_req_cb = port_sle_connect_param_update_req_cb,
     };
     ret = sle_connection_register_callbacks(&conn_cbs);
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
              TAG, "sle_connection_register_callbacks failed!:%#X", ret);
 
-    sle_announce_seek_callbacks_t adv_cbs = {
-        .announce_enable_cb = port_sle_announce_enable_cb,
-        .announce_disable_cb = port_sle_announce_disable_cb,
-        .announce_terminal_cb = port_sle_announce_terminal_cb,
-    };
-    ret = sle_announce_seek_register_callbacks(&adv_cbs);
-    XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
-             TAG, "sle_announce_seek_register_callbacks failed!:%#X", ret);
-
     ssaps_callbacks_t ssaps_cbs = {
+        .mtu_changed_cb = port_ssaps_exchange_info_cb,
         .read_request_cb = port_ssaps_read_request_cb,
         .write_request_cb = port_ssaps_write_request_cb,
-        .add_service_cb = port_ssaps_add_service_cb,
     };
     ret = ssaps_register_callbacks(&ssaps_cbs);
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
@@ -266,7 +260,7 @@ xf_err_t xf_sle_ssaps_send_response(
                      value = 0x0002: indication allowed
  * @param  [in] app_id server ID.
  * @param  [in] conn_id   connection ID，To send packets to all peer ends, enter conn_id = 0xffff.
- * @param  [in] param     notify/indicate parameter.
+ * @param  [in] param     ntf/indicate parameter.
  * @retval ERRCODE_SUCC Success.
  * @retval Other        Failure. For details, see @ref errcode_t
  * @par Depends:
@@ -364,7 +358,7 @@ static void port_sle_connect_state_changed_cb(
             },
         };
         memcpy(cb_param.connect.peer_addr.addr,  addr->addr, XF_SLE_ADDR_LEN);
-        s_sle_ssaps_evt_cb(XF_SLE_CONN_EVT_CONNECT, &cb_param);
+        s_sle_ssaps_evt_cb(XF_SLE_COMMON_EVT_CONNECT, &cb_param);
     } else {
         xf_sle_ssaps_evt_cb_param_t cb_param = {
             .disconnect =
@@ -376,7 +370,7 @@ static void port_sle_connect_state_changed_cb(
             },
         };
         memcpy(cb_param.connect.peer_addr.addr,  addr->addr, XF_SLE_ADDR_LEN);
-        s_sle_ssaps_evt_cb(XF_SLE_CONN_EVT_DISCONNECT, &cb_param);
+        s_sle_ssaps_evt_cb(XF_SLE_COMMON_EVT_DISCONNECT, &cb_param);
     }
 }
 
@@ -389,7 +383,7 @@ static void port_sle_connect_param_update_cb(
     if (s_sle_ssaps_evt_cb == NULL) {
         return;
     }
-
+    XF_LOGD(TAG, "CONN PARAM UPD, conn_id:%d, interval = %02x\r\n", conn_id, param->interval);
     xf_sle_ssaps_evt_cb_param_t cb_param = {
         .conn_param_update =
         {
@@ -398,82 +392,31 @@ static void port_sle_connect_param_update_cb(
             .supervision_timeout = param->supervision,
         }
     };
-    s_sle_ssaps_evt_cb(XF_SLE_CONN_EVT_CONN_PARAMS_UPDATE, &cb_param);
+    s_sle_ssaps_evt_cb(XF_SLE_COMMON_EVT_CONN_PARAMS_UPDATE, &cb_param);
 }
 
-static void port_sle_connect_param_update_req_cb(
-    uint16_t conn_id, errcode_t status,
-    const sle_connection_param_update_req_t *param)
+static void port_ssaps_exchange_info_cb(
+    uint8_t client_id, uint16_t conn_id, 
+    ssap_exchange_info_t *info,
+    errcode_t status)
 {
+    unused(client_id);
     unused(status);
+    XF_LOGD(TAG, "exchange_info_cb:app_id:%d,conn_id:%d",
+            client_id, conn_id);
     if (s_sle_ssaps_evt_cb == NULL) {
         return;
     }
-
     xf_sle_ssaps_evt_cb_param_t cb_param = {
-        .req_conn_param_update =
+        .info =
         {
+            .app_id = client_id,
             .conn_id = conn_id,
-            .interval_min = param->interval_min,
-            .interval_max = param->interval_max,
-            .max_latency = param->max_latency,
-            .supervision_timeout = param->supervision_timeout,
+            .mtu_size = info->mtu_size,
+            .version = info->version,
         }
     };
-    s_sle_ssaps_evt_cb(XF_SLE_CONN_EVT_REQ_CONN_PARAMS_UPDATE, &cb_param);
-}
-
-static void port_sle_announce_enable_cb(
-    uint32_t announce_id, errcode_t status)
-{
-    unused(status);
-    if (s_sle_ssaps_evt_cb == NULL) {
-        return;
-    }
-    xf_sle_ssaps_evt_cb_param_t cb_param = {
-        .adv_enable =
-        {
-            .announce_id = announce_id,
-        }
-    };
-    s_sle_ssaps_evt_cb(XF_SLE_ADV_EVT_ENABLE, &cb_param);
-}
-
-static void port_sle_announce_disable_cb(
-    uint32_t announce_id, errcode_t status)
-{
-    unused(status);
-    xf_sle_ssaps_evt_cb_param_t cb_param = {
-        .adv_disable =
-        {
-            .announce_id = announce_id,
-        }
-    };
-    s_sle_ssaps_evt_cb(XF_SLE_ADV_EVT_DISABLE, &cb_param);
-}
-
-static void port_sle_announce_terminal_cb(uint32_t announce_id)
-{
-    xf_sle_ssaps_evt_cb_param_t cb_param = {
-        .adv_termial =
-        {
-            .announce_id = announce_id,
-        }
-    };
-    s_sle_ssaps_evt_cb(XF_SLE_ADV_EVT_TERMINAL, &cb_param);
-}
-
-static void port_ssaps_add_service_cb(
-    uint8_t server_id, sle_uuid_t *uuid,
-    uint16_t handle, errcode_t status)
-{
-    unused(server_id);
-    unused(uuid);
-    unused(handle);
-    unused(status);
-    if (s_sle_ssaps_evt_cb == NULL) {
-        return;
-    }
+    s_sle_ssaps_evt_cb(XF_SLE_SSAPS_EVT_EXCHANGE_INFO, &cb_param);
 }
 
 static void port_ssaps_read_request_cb(
@@ -487,7 +430,7 @@ static void port_ssaps_read_request_cb(
         return;
     }
     xf_sle_ssaps_evt_cb_param_t cb_param = {
-        .req_read =
+        .read_req =
         {
             .conn_id = conn_id,
             .handle = read_cb_para->handle,
@@ -497,7 +440,7 @@ static void port_ssaps_read_request_cb(
             .need_auth = read_cb_para->need_authorize
         }
     };
-    s_sle_ssaps_evt_cb(XF_SLE_SSAPS_EVT_REQ_READ, &cb_param);
+    s_sle_ssaps_evt_cb(XF_SLE_SSAPS_EVT_READ_REQ, &cb_param);
 }
 
 static void port_ssaps_write_request_cb(
@@ -511,7 +454,7 @@ static void port_ssaps_write_request_cb(
         return;
     }
     xf_sle_ssaps_evt_cb_param_t cb_param = {
-        .req_write =
+        .write_req =
         {
             .conn_id = conn_id,
             .handle = write_cb_para->handle,
@@ -523,5 +466,7 @@ static void port_ssaps_write_request_cb(
             .value = write_cb_para->value,
         }
     };
-    s_sle_ssaps_evt_cb(XF_SLE_SSAPS_EVT_REQ_WRITE, &cb_param);
+    s_sle_ssaps_evt_cb(XF_SLE_SSAPS_EVT_WRITE_REQ, &cb_param);
 }
+
+#endif  // CONFIG_XF_SLE_ENABLE

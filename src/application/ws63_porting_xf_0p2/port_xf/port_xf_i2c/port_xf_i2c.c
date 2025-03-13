@@ -214,7 +214,13 @@ static int port_i2c_ioctl(xf_hal_dev_t *dev, uint32_t cmd, void *config)
     uint8_t bit_n = 0;
     while (cmd > 0)
     {
-        uint32_t cmd_bit = cmd & (0x1<<bit_n); // 获取该位的命令状态（是否有效）
+        /* 逐命令位检查命令状态，有效执行，无效移到下一位 */
+        uint32_t cmd_bit = cmd & (0x1<<bit_n); 
+        if(cmd_bit == 0)
+        {
+            ++bit_n;
+            continue;
+        }
         cmd &= (~cmd_bit);  // 清除该检测完的命令位
         /* 命令匹配 */
         switch (cmd_bit)
@@ -326,7 +332,7 @@ static void *i2c_task(const char *arg)
     {
         if( xf_list_empty(&port_i2c->tasks_info.queue) == true )
         {
-            xf_sleep_ms(10);
+            port_sleep_ms(10);
             continue;
         }
         xf_list_for_each_entry_safe(task, temp, &port_i2c->tasks_info.queue,
@@ -568,7 +574,7 @@ static inline int port_i2c_master_read(
             break;
         }
 
-        xf_sleep_ms(I2C_CHECK_INTERVAL_MS);
+        port_sleep_ms(I2C_CHECK_INTERVAL_MS);
         ms_now = uapi_tcxo_get_ms();
         if ( (ms_now - ms_start) >= timeout_ms )
         {
@@ -626,7 +632,7 @@ static inline xf_err_t port_i2c_master_read_reg(
             break;
         }
 
-        xf_sleep_ms(I2C_CHECK_INTERVAL_MS);
+        port_sleep_ms(I2C_CHECK_INTERVAL_MS);
         ms_now = uapi_tcxo_get_ms();
         if ( (ms_now - ms_start) >= timeout_ms )
         {
@@ -682,7 +688,7 @@ static inline xf_err_t port_i2c_master_write(
             break;
         }
 
-        xf_sleep_ms(I2C_CHECK_INTERVAL_MS);
+        port_sleep_ms(I2C_CHECK_INTERVAL_MS);
         ms_now = uapi_tcxo_get_ms();
         if ( (ms_now - ms_start) >= timeout_ms )
         {
@@ -740,7 +746,7 @@ static inline xf_err_t port_i2c_master_write_reg(
             break;
         }
 
-        xf_sleep_ms(I2C_CHECK_INTERVAL_MS);
+        port_sleep_ms(I2C_CHECK_INTERVAL_MS);
         ms_now = uapi_tcxo_get_ms();
         if ( (ms_now - ms_start) >= timeout_ms )
         {

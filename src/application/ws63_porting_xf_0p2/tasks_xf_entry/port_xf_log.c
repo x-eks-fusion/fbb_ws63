@@ -32,6 +32,7 @@
 
 static void xf_log_out(const char *str, size_t len, void *arg)
 {
+    UNUSED(arg);
     if ((NULL == str) || (0 == len)) {
         return;
     }

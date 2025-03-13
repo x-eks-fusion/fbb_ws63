@@ -1,9 +1,14 @@
 /* ==================== [Includes] ========================================== */
 
+#include "xfconfig.h"
+
+#if (CONFIG_XF_SLE_ENABLE)
+
 #include "xf_utils.h"
 #include "xf_init.h"
 #include "string.h"
 #include "xf_heap.h"
+#include "xf_sle_port_utils.h"
 
 #include "common_def.h"
 #include "soc_osal.h"
@@ -42,7 +47,7 @@ xf_err_t xf_sle_disable(void)
     return XF_OK;
 }
 
-// 设置本地设备地址v
+// 设置本地设备地址
 xf_err_t xf_sle_set_local_addr(xf_sle_addr_t *addr)
 {
     sle_addr_t own_addr = {.type = addr->type};
@@ -90,121 +95,56 @@ xf_err_t xf_sle_get_local_name(uint8_t *name, uint8_t *len)
 xf_err_t xf_sle_set_announce_data(
     uint8_t announce_id, const xf_sle_announce_data_t *data)
 {
-    uint8_t *std_adv_data_all = NULL;
-    uint8_t *ptr_current  = NULL;
-    uint8_t cnt = 0;
-    uint16_t adv_data_size_all = 0;
-    sle_announce_data_t ws63_adv_data_info = {
-        .seek_rsp_data = data->seek_rsp_data,
-        .seek_rsp_data_len = data->seek_rsp_data_len,
-    };
-    /* 避免广播数据或广播扫描后回应数据指向 NULL 或长度为0
-    （ws63在这些情况下会广播开启失败，报 0x8000 600C 错误）*/
-    if ((data->seek_rsp_data == NULL)
-            || (data->seek_rsp_data_len == 0)
-       ) {
-        ws63_adv_data_info.seek_rsp_data_len = 1;
-        ws63_adv_data_info.seek_rsp_data =
-            (uint8_t *)&ws63_adv_data_info.seek_rsp_data_len;
+    /* 包含广播数据包及扫描响应数据包的信息 */
+    sle_announce_data_t adv_data_info = {0};  // 先清空
+
+    uint8_t data_packed_size = 0;
+    uint8_t data_packed_size_temp = 0;
+
+    /* 解析 adv_struct_set ，设置广播数据 (adv_data) */
+    data_packed_size = xf_sle_adv_data_packed_size_get(data->announce_struct_set);
+    XF_LOGD(TAG, "data_packed_size (adv_data):%d", data_packed_size);
+    data_packed_size_temp = data_packed_size == 0?1:data_packed_size;   // 避免 无广播数据时数组长度为 0
+    uint8_t data_packed_adv[data_packed_size_temp];
+    /* 有广播数据 -> 解析广播数据单元集合，填充广播数据包 */
+    if(data_packed_size > 0)
+    {
+        memset(data_packed_adv, 0, data_packed_size);
+        xf_sle_adv_data_packed_by_adv_struct_set(data_packed_adv, data->announce_struct_set);
+        adv_data_info.announce_data = data_packed_adv;
     }
-    if (data->announce_struct_set == NULL) {
-        ws63_adv_data_info.announce_data_len = 1;
-        ws63_adv_data_info.announce_data =
-            (uint8_t *)&ws63_adv_data_info.announce_data_len;
-        goto fill_ws63_adv_data_cmpl;
-    }
-
-    /* 计算整个广播数据结构的总长度（无效填充部分不计入） */
-    cnt = 0;
-    adv_data_size_all = 0;
-    while (data->announce_struct_set[cnt].struct_data_len != 0) {
-        adv_data_size_all +=
-            XF_SLE_ADV_STRUCT_TYPE_FILED_SIZE
-            + XF_SLE_ADV_STRUCT_LEN_FILED_SIZE
-            + data->announce_struct_set[cnt].struct_data_len;
-        ++cnt;
-    }
-    XF_LOGI(TAG, "adv_data_size_all:%d", adv_data_size_all);
-    std_adv_data_all = xf_malloc(adv_data_size_all);
-    XF_CHECK(std_adv_data_all == NULL, XF_ERR_NO_MEM, TAG, "std_adv_data_all malloc failed!");
-    memset(std_adv_data_all, 0, adv_data_size_all);
-
-    /* 遍历将各个 ad structure 顺序放入 */
-    ptr_current = std_adv_data_all;
-    cnt = 0;
-    while (data->announce_struct_set[cnt].struct_data_len != 0) {
-        uint8_t adv_struct_size = 0;
-        switch (data->announce_struct_set[cnt].type) {
-        case XF_SLE_ADV_STRUCT_TYPE_COMPLETE_LOCAL_NAME: {
-            XF_SLE_SSAP_STRUCT_TYPE_ARRAY_U8(std_adv_struct_t, data->announce_struct_set[cnt].struct_data_len);
-
-            // 临时 malloc，记得 free（包含可变长数组只能动态创建）
-            std_adv_struct_t *adv_struct = xf_malloc(sizeof(std_adv_struct_t));
-            XF_CHECK(adv_struct == NULL, XF_ERR_NO_MEM, TAG, "adv_struct xf_malloc == NULL!");
-
-            // > 设置 struct_data_len：sizeof(ad_type(1Byte)+ad_data) 或 整个 adv_struct 大小 - struct_data_len
-            // 貌似 ws63 这个广播数据结构中的 len 与 SLE 标准不太一样反而跟 BLE 一样，是包括 type 与 data 的长度的
-            adv_struct_size = sizeof(std_adv_struct_t); // 获取整个 adv_struct 大小
-            adv_struct->struct_data_len = adv_struct_size - XF_SLE_ADV_STRUCT_LEN_FILED_SIZE;
-
-            // > 设置 ad_type
-            adv_struct->type = data->announce_struct_set[cnt].type;
-
-            /* > 设置 ad_data：将传入的 local name 复制至 临时构造的 adv_struct */
-            memcpy(adv_struct->data, data->announce_struct_set[cnt].data.local_name,
-                   data->announce_struct_set[cnt].struct_data_len);
-
-            /* 将临时构造的 adv_struct 整个复制至 std_adv_data_all 对应位置 */
-            memcpy(ptr_current, adv_struct, adv_struct_size);
-            xf_free(adv_struct);
-            /* std_adv_data_all 写入位置更新 */
-            ptr_current += adv_struct_size;
-        } break;
-        case XF_SLE_ADV_STRUCT_TYPE_DISCOVERY_LEVEL: {
-            XF_SLE_SSAP_STRUCT_TYPE_VAL_U8(std_adv_struct_t);
-
-            // 临时 malloc，记得 free（包含可变长数组只能动态创建）
-            std_adv_struct_t *adv_struct = xf_malloc(sizeof(std_adv_struct_t));
-            XF_CHECK(adv_struct == NULL, XF_ERR_NO_MEM, TAG, "adv_struct xf_malloc == NULL!");
-
-            // > 设置 struct_data_len：sizeof(ad_type(1Byte)+ad_data) 或 整个 adv_struct 大小 - struct_data_len
-            // 貌似 ws63 这个广播数据结构中的 len 与 SLE 标准不太一样反而跟 BLE 一样，是包括 type 与 data 的长度的
-            adv_struct_size = sizeof(std_adv_struct_t); // 获取整个 adv_struct 大小
-            adv_struct->struct_data_len = adv_struct_size - XF_SLE_ADV_STRUCT_LEN_FILED_SIZE;
-
-            // > 设置 ad_type
-            adv_struct->type = data->announce_struct_set[cnt].type;
-
-            // > 设置 ad_data：
-            adv_struct->data = data->announce_struct_set[cnt].data.discovery_level;
-
-            /* 将临时构造的 adv_struct 整个复制至 std_adv_data_all 对应位置 */
-            memcpy(ptr_current, adv_struct, adv_struct_size);
-            xf_free(adv_struct);
-            /* std_adv_data_all 写入位置更新 */
-            ptr_current += adv_struct_size;
-        } break;
-        default: {
-            XF_LOGW(TAG, "This type[%#X] is currently not supported!", data->announce_struct_set[cnt].type);
-        } break;
-        }
-        ++cnt;
+    adv_data_info.announce_data_len = data_packed_size;
+    /* FIXME 貌似是SDK问题，广播数据或扫描响应数据指向 NULL 或长度为0时，
+        广播开启失败，报 0x8000 600C 错误）*/
+    if(data_packed_size == 0)
+    {
+        adv_data_info.announce_data_len = 1;
+        adv_data_info.announce_data = data_packed_adv;
     }
 
-    /* WS63的 adv_data 指 adv data 整个的广播包
-        adv_length 同样指整个广播包大小*/
-    ws63_adv_data_info.announce_data = std_adv_data_all;
-    ws63_adv_data_info.announce_data_len = adv_data_size_all;
+    /* 解析 seek_rsp_struct_set ，设置扫描响应数据 (seek_rsp_data) */
+    data_packed_size = xf_sle_adv_data_packed_size_get(data->seek_rsp_struct_set);
+    XF_LOGD(TAG, "data_packed_size (seek_rsp_data):%d", data_packed_size);
+    data_packed_size_temp = data_packed_size == 0?1:data_packed_size;   // 避免 无扫描响应数据时数组长度为 0
+    uint8_t data_packed_seek_rsp[data_packed_size_temp];
+    /* 有扫描响应数据 -> 解析扫描响应数据单元集合，填充扫描响应数据包 */
+    if(data_packed_size > 0)
+    {
+        memset(data_packed_seek_rsp, 0, data_packed_size);
+        xf_sle_adv_data_packed_by_adv_struct_set(data_packed_seek_rsp, data->seek_rsp_struct_set);
+        adv_data_info.seek_rsp_data = data_packed_seek_rsp;
+    }
+    adv_data_info.seek_rsp_data_len = data_packed_size;
+    /* FIXME 貌似是SDK问题，广播数据或扫描响应数据指向 NULL 或长度为0时，
+        广播开启失败，报 0x8000 600C 错误）*/
+    if(data_packed_size == 0)
+    {
+        adv_data_info.seek_rsp_data_len = 1;
+        adv_data_info.seek_rsp_data = data_packed_seek_rsp;
+    }
 
-fill_ws63_adv_data_cmpl:;
-
-#if XF_SLE_DEBUG_ENABLE == 1
-    XF_LOG_BUFFER_HEXDUMP_ESCAPE(
-        ws63_adv_data_info.announce_data, 
-        ws63_adv_data_info.announce_data_len);
-#endif
-
-    errcode_t ret = sle_set_announce_data(announce_id, &ws63_adv_data_info);
+    /* FIXME 貌似 扫描响应数据不能生效，扫描不到 */
+    errcode_t ret = sle_set_announce_data(announce_id, &adv_data_info);
     XF_CHECK(ret != ERRCODE_SUCC, (xf_err_t)ret,
              TAG, "sle_set_announce_data failed!:%#X", ret);
     return XF_OK;
@@ -263,9 +203,6 @@ xf_err_t xf_sle_stop_announce(uint8_t announce_id)
     return XF_OK;
 }
 
-// // 删除广播
-// errcode_t sle_remove_announce(uint8_t announce_id);
-
 // 设置设备公开扫描参数
 xf_err_t xf_sle_set_seek_param(xf_sle_seek_param_t *param)
 {
@@ -308,3 +245,4 @@ xf_err_t xf_sle_stop_seek(void)
 
 /* ==================== [Static Functions] ================================== */
 
+#endif  // CONFIG_XF_SLE_ENABLE

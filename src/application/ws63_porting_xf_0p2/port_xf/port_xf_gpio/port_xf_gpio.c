@@ -310,7 +310,13 @@ static int port_gpio_ioctl(xf_hal_dev_t *dev, uint32_t cmd, void *config)
     uint8_t bit_n = 0;
     while (cmd > 0)
     {
-        uint32_t cmd_bit = cmd & (0x1<<bit_n); // 获取该位的命令状态（是否有效）
+        /* 逐命令位检查命令状态，有效执行，无效移到下一位 */
+        uint32_t cmd_bit = cmd & (0x1<<bit_n); 
+        if(cmd_bit == 0)
+        {
+            ++bit_n;
+            continue;
+        }
         cmd &= (~cmd_bit);  // 清除该检测完的命令位
         /* 命令匹配 */
         switch (cmd_bit)
@@ -334,11 +340,12 @@ static int port_gpio_ioctl(xf_hal_dev_t *dev, uint32_t cmd, void *config)
         case XF_HAL_GPIO_CMD_INTR_CB:
         case XF_HAL_GPIO_CMD_INTR_ISR:
         {
+
         }break;
         case XF_HAL_GPIO_CMD_SPEED:
         default:
         {
-            XF_LOGW(TAG, "cmd[%d] is not supported!", cmd);
+            XF_LOGW(TAG, "cmd[%d](%d) is not supported!", cmd, cmd_bit);
             ret = XF_ERR_NOT_SUPPORTED;
         }break;
         }

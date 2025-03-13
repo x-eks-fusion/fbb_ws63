@@ -18,6 +18,10 @@ if(DEFINED CONFIG_SAMPLE_SUPPORT_BLE_SPEED_CLIENT_SAMPLE)
     add_subdirectory_if_exist(ble_speed_client)
 endif()
 
+if(DEFINED CONFIG_SAMPLE_SUPPORT_BLE_HID_MOUSE)
+    add_subdirectory_if_exist(ble_hid_mouse_server)
+endif()
+
 if(${CHIP} MATCHES "ws63")
 add_subdirectory_if_exist(ble_wifi_cfg_client)
 add_subdirectory_if_exist(ble_wifi_cfg_server)

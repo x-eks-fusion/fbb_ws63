@@ -3,12 +3,12 @@
 
 /* ==================== [Includes] ========================================== */
 
+#include "xfconfig.h"
+
+#if (CONFIG_XF_SLE_ENABLE)
+
 #include "xf_utils.h"
 #include "sle_ssap_stru.h"
-
-#define XF_SLE_IS_ENABLE 1
-
-#if XF_SLE_IS_ENABLE
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +42,6 @@ uint8_t port_sle_flow_ctrl_state_get(uint16_t conn_id);
 } /* extern "C" */
 #endif
 
-#endif /* XF_SLE_IS_ENABLE */
+#endif /* CONFIG_XF_SLE_ENABLE */
 
 #endif /* __PORT_SLE_TRANSMITION_MANAGER_H__ */
