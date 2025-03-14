@@ -47,6 +47,7 @@ target = {
             "CONFIG_NO_VERIFY_TLS_TIME",
             "CHBA_SUPPORT",
             "_PRE_WLAN_FEATURE_SLE_BRIDGE",
+            "CONFIG_DHCPS_GW",
         ],
         'ram_component': [
             'ws63_liteos_app',
