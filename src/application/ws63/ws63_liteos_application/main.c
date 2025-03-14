@@ -246,14 +246,17 @@ static void app_main(const void *unused)
 {
     LOS_MEM_POOL_STATUS status;
     UNUSED(unused);
+    UNUSED(status);
     (void)osDelay(100); // 100: 100tiks = 1s
     systick_cali_xclk_bottom_half();
     while (1) {
         (void)osDelay(APP_MAIN_DELAY_TIME);
+#if defined(CONFIG_SYS_INFO_REPORTING_ENABLE) && (CONFIG_SYS_INFO_REPORTING_ENABLE != 0)
         LOS_MemInfoGet(m_aucSysMem0, &status);
         PRINT("[SYS INFO] mem: used:%u, free:%u; log: drop/all[%u/%u], at_recv %u.\r\n", status.uwTotalUsedSize,
             status.uwTotalFreeSize, log_get_missed_messages_count(), log_get_all_messages_count(),
             at_uart_get_rcv_cnt());
+#endif
 
 #if defined(CONFIG_UART_SUPPORT_RX_THREAD)
 #if defined(CONFIG_UART_SUPPORT_RX_THREAD_DEBUG)
