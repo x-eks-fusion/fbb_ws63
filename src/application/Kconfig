@@ -3,6 +3,11 @@
 # Copyright (c) HiSilicon (Shanghai) Technologies Co., Ltd. 2023-2023. All rights reserved.
 #===============================================================================
 
+config SYS_INFO_REPORTING_ENABLE
+    bool
+    prompt "Enable system information reporting."
+    default n
+
 config SAMPLE_ENABLE
     bool
     prompt "Enable Sample."
