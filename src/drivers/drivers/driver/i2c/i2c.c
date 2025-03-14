@@ -1126,6 +1126,114 @@ errcode_t uapi_i2c_master_writeread(i2c_bus_t bus, uint16_t dev_addr, i2c_data_t
     i2c_mutex_unlock(bus);
     return ret;
 }
+
+/* XF_MOD_TAG: 增加 Master 可设置停止位、起始位的读写 api */
+errcode_t _port_i2c_master_write(
+    i2c_bus_t bus, uint16_t dev_addr, i2c_data_t *data,
+    bool need_stop, bool need_restart)
+{
+    errcode_t ret = i2c_write_pre_check(bus, data);
+    if (ret != ERRCODE_SUCC) {
+        return ret;
+    }
+
+    ret = i2c_fifo_check(bus);
+    if (ret != ERRCODE_SUCC) {
+        return ret;
+    }
+
+    hal_i2c_buffer_wrap_t buffer_wrap = { 0 };
+    buffer_wrap.buffer = data->send_buf;
+    buffer_wrap.len = data->send_len;
+    buffer_wrap.stop_flag = need_stop;
+    buffer_wrap.restart_flag = need_restart;
+
+    i2c_mutex_lock(bus);
+#if defined(CONFIG_I2C_SUPPORT_DMA) && (CONFIG_I2C_SUPPORT_DMA == 1)
+#if defined(CONFIG_I2C_SUPPORT_POLL_AND_DMA_AUTO_SWITCH) && (CONFIG_I2C_SUPPORT_POLL_AND_DMA_AUTO_SWITCH == 1)
+    if (buffer_wrap.len > CONFIG_I2C_POLL_AND_DMA_AUTO_SWITCH_THRESHOLD) {
+        uapi_i2c_set_dma_mode(bus, true);
+        ret = i2c_write_by_dma(bus, dev_addr, &buffer_wrap);
+        i2c_mutex_unlock(bus);
+        return ret;
+    }
+    uapi_i2c_set_dma_mode(bus, false);
+#else
+    if (g_i2c_ctrl[bus].operate_type == I2C_DATA_OPERATION_TYPE_DMA) {
+        ret = i2c_write_by_dma(bus, dev_addr, &buffer_wrap);
+        i2c_mutex_unlock(bus);
+        return ret;
+    }
+#endif  /* CONFIG_I2C_SUPPORT_POLL_AND_DMA_AUTO_SWITCH */
+#endif  /* CONFIG_I2C_SUPPORT_DMA */
+#if defined(CONFIG_I2C_SUPPORT_INT) && (CONFIG_I2C_SUPPORT_INT == 1)
+    if (g_i2c_ctrl[bus].operate_type == I2C_DATA_OPERATION_TYPE_INT) {
+        ret = i2c_write_int(bus, dev_addr, &buffer_wrap);
+        i2c_mutex_unlock(bus);
+        return ret;
+    }
+#endif  /* CONFIG_I2C_SUPPORT_INT */
+    ret = i2c_poll_write(bus, dev_addr, &buffer_wrap, true);
+    i2c_mutex_unlock(bus);
+    return ret;
+}
+
+
+errcode_t _port_i2c_master_read(
+    i2c_bus_t bus, uint16_t dev_addr, i2c_data_t *data,
+    bool need_stop, bool need_restart)
+{
+    errcode_t ret = i2c_read_pre_check(bus, data);
+    if (ret != ERRCODE_SUCC) {
+        return ret;
+    }
+
+    hal_i2c_buffer_wrap_t buffer_wrap = { 0 };
+    buffer_wrap.buffer = data->receive_buf;
+    buffer_wrap.len = data->receive_len;
+    buffer_wrap.stop_flag = need_stop;
+    buffer_wrap.restart_flag = need_restart;
+
+    i2c_mutex_lock(bus);
+#if defined(CONFIG_I2C_SUPPORT_DMA) && (CONFIG_I2C_SUPPORT_DMA == 1)
+#if defined(CONFIG_I2C_SUPPORT_POLL_AND_DMA_AUTO_SWITCH) && (CONFIG_I2C_SUPPORT_POLL_AND_DMA_AUTO_SWITCH == 1)
+    if (buffer_wrap.len > CONFIG_I2C_POLL_AND_DMA_AUTO_SWITCH_THRESHOLD) {
+        uapi_i2c_set_dma_mode(bus, true);
+        errcode_t ret = i2c_read_by_dma(bus, dev_addr, &buffer_wrap);
+        if (ret != ERRCODE_SUCC) {
+            i2c_mutex_unlock(bus);
+            return ret;
+        }
+        ret = i2c_read_do_send_cmd(bus, &buffer_wrap);
+        i2c_mutex_unlock(bus);
+        return ret;
+    }
+    uapi_i2c_set_dma_mode(bus, false);
+#else
+    if (g_i2c_ctrl[bus].operate_type == I2C_DATA_OPERATION_TYPE_DMA) {
+        errcode_t ret = i2c_read_by_dma(bus, dev_addr, &buffer_wrap);
+        if (ret != ERRCODE_SUCC) {
+            i2c_mutex_unlock(bus);
+            return ret;
+        }
+        ret = i2c_read_do_send_cmd(bus, &buffer_wrap);
+        i2c_mutex_unlock(bus);
+        return ret;
+    }
+#endif  /* CONFIG_I2C_SUPPORT_POLL_AND_DMA_AUTO_SWITCH */
+#endif  /* CONFIG_I2C_SUPPORT_DMA */
+#if defined(CONFIG_I2C_SUPPORT_INT) && (CONFIG_I2C_SUPPORT_INT == 1)
+    if (g_i2c_ctrl[bus].operate_type == I2C_DATA_OPERATION_TYPE_INT) {
+        ret = i2c_read_int(bus, dev_addr, &buffer_wrap);
+        i2c_mutex_unlock(bus);
+        return ret;
+    }
+#endif  /* CONFIG_I2C_SUPPORT_INT */
+    ret = i2c_poll_read(bus, dev_addr, &buffer_wrap, true);
+    i2c_mutex_unlock(bus);
+    return ret;
+}
+
 #endif  /* CONFIG_I2C_SUPPORT_MASTER */
 
 #if defined(CONFIG_I2C_SUPPORT_SLAVE) && (CONFIG_I2C_SUPPORT_SLAVE == 1)
