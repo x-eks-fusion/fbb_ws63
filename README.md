@@ -1,380 +1,86 @@
-# fbb_ws63开发指南
+# 关于此 fbb_ws63
 
-## 介绍
+此仓库是基于官方开源的 fbb_ws63 sdk 修改适配 XFusion 的版本。
 
-  fbb_ws63代码仓为支持ws63和ws63e解决方案SDK，该SDK包从统一开发平台FBB（Family Big Box，统一开发框架，统一API）构建而来，在该平台上开发的应用很容易被移植到其他星闪解决方案上，有效降低开发者门槛，缩短开发周期，支持开发者快速开发星闪产品。
+- 更多文档参见：[Coral 科洛社区 - 从 ws63 开始](https://www.coral-zone.cc/#/document?path=/document/zh_CN/get-started/starting_with_ws63.html)
+- 与 XFusion 对接部分参见：[x-eks-fusion/port_xf_for_nearlink: NearLink port of XFusion.](https://github.com/x-eks-fusion/port_xf_for_nearlink)
+- 原版参见：[fbb_ws63: fbb_ws63 代码仓为支持 ws63 和 ws63e 解决方案 SDK。](https://gitee.com/HiSpark/fbb_ws63)
 
-## 购买渠道
+## 注意事项
 
-|      序号      | 硬件资料                                                     | 介绍          |
-| :------------: | ------------------------------------------------------------ | ------------- |
-| 1  | [购买链接](https://www.ickey.cn/detail/1003001013187550/Q353333N1100.html) | ws63解决方案  |
-| 2 | [购买链接](https://www.ickey.cn/detail/1003001013187551/Q353333N1100E.html) | ws63E解决方案 |
-| 3 | [模组购买链接](https://gitee.com/link?target=https%3A%2F%2Fitem.taobao.com%2Fitem.htm%3Fid%3D821194904380) | 星闪WiFi6模组，邮票孔，无天线 |
-| 4 | [模组购买链接](https://gitee.com/link?target=https%3A%2F%2Fitem.taobao.com%2Fitem.htm%3Fid%3D823544936579) | 星闪WiFi6模组，12：板载天线，12E：外置天线 |
-| 5 | [模组购买链接](https://gitee.com/link?target=https%3A%2F%2Fitem.taobao.com%2Fitem.htm%3Fid%3D820900594332) | 星闪WiFi6模组，20：板载天线，20E：外置天线 |
+### 备忘录
 
-## 支持的开发板
+1. sdk 本身自带的 bug.
 
-|                          开发板名称                          | 硬件资料                                                     | 软件资料         | 购买链接                                                     | 开发板介绍                                                   |
-| :----------------------------------------------------------: | ------------------------------------------------------------ | :--------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
-| HiHope_NearLink_DK3863E_V03<img src="docs/pic/readme/image-20240809164437807.png" alt="image-20240809164437807" style="zoom: 50%;" /> | [扩展板硬件资料](https://gitee.com/HiSpark/fbb_ws63/tree/master/docs/hardware/HiHope_NearLink_DK_WS63E_V03) | 参考示例教程章节 | [开发板购买链接](https://main.m.taobao.com/security-h5-detail/home?id=808369265492&spm=a2141.7631565.tbshopmod-guess_your_like.808369265492&scm=1007.18373.317678.0&pvid=fdb854bd-99a3-4b65-955b-392bdf0c083e&fromNormal=true) | 是一款高度集成的2.4GHz Wi-Fi 6 星闪多模开发板，支持Liteos、OpenHarmony轻量系统 |
-| BearPi-Pico_H3863<img src="docs/pic/BearPi-Pico_H3863/bearpi_pico_h3863.png" alt="image-20240809164437807" style="zoom: 50%;" /> | [扩展板硬件资料](https://gitee.com/HiSpark/fbb_ws63/tree/master/docs/hardware/BearPi-Pico_H3863) | 参考示例教程章节 | [开发板购买链接](https://item.taobao.com/item.htm?id=821386760379) | 是一款高度集成的2.4GHz Wi-Fi 6 星闪多模开发板，具有灵活的数字接口，集成高性能 32bit 微处理器（MCU），硬件安全引擎以及丰富的外设接口，外设接口包括 SPI、UART、I2C、PWM、GPIO，支持 6 路 13bit 分辨率 ADC，内置 SRAM 和合封 Flash，并支持在 Flash 上运行程序支持Liteos、OpenHarmony轻量系统 |
-| <img src="vendor/Hqyj_Ws63/doc/HQYJ_WS63.png" alt="HQYJ_WS63" style="zoom:80%;" /> | [扩展板硬件资料](https://gitee.com/HiSpark/fbb_ws63/blob/master/vendor/Hqyj_Ws63/doc/FS-WS63-%E5%8E%9F%E7%90%86%E5%9B%BEV2.pdf) | 参考示例教程章节 | [开发板购买链接](https://item.taobao.com/item.htm?id=892481769813) | 专为学习者设计的WS63鸿蒙星闪开发板，支持OpenHarmony，Liteos，多模通信（WiFi/星闪/蓝牙），丰富的板载资源、项目拓展模块与学习资料，可广泛应用于个人学习、高校教学、学生毕设、创新竞赛等 |
+   1. 【已修复】
 
-## 目录介绍
+      1. `致命错误： asm/memmap_config.h：没有那个文件或目录` 报错。
 
-| 目录   | 介绍                                                 |
-| ------ | ---------------------------------------------------- |
-| docs   | 存放资料手册、IO复用关系表、硬件原理图、用户指南手册 |
-| src    | SDK源码目录                                          |
-| tools  | 开发工具及环境搭建指南                               |
-| vendor | 存放对应开发板案例                                   |
+         sdk 覆盖了某些标准库实现，在使用某些头文件（`#include <limits.h>`）时会出现如上报错，这是由于 `kernel/liteos/liteos_v208.5.0/CMakeLists.txt` 内的 `LOS_HEADER` 缺少包含路径。
 
-## 快速上手
+         见：`🐞 fix(liteos): 修复缺少包含路径`
 
-1. 开发环境搭建[参考tools目录README](https://gitee.com/HiSpark/fbb_ws63/tree/master/tools)
-2. 资料手册、IO复用关系、用户手册指南表[参考docs/board目录README](https://gitee.com/HiSpark/fbb_ws63/tree/master/docs/board)
-3. 硬件原理图[参考docs/hardware](https://gitee.com/HiSpark/fbb_ws63/tree/master/docs/hardware)
+      1. `🐞 fix(mid-sle): 补全缺失的头文件`：
 
-## 示例教程
+         补全中间层 sle 中，传输管理文件中缺失的头文件包含：
+         文件 `include/middleware/services/bts/sle/sle_transmition_manager.h` 中，漏加 `errcode.h` 文件的包含，会导致报错。
 
-HiHope_NearLink_DK3863E_V03提供了以下Demo供开发参考：
+      1. `🐞 fix(drivers-i2c): 补全sdk缺失的接口`：i2c 驱动缺少控制停止位、起始位的接口，现已补充。
 
-<table  width="990" border="0" cellpadding="0" cellspacing="0" style='border-collapse:collapse;table-layout:fixed;'>
- <tr height="18" style='height:13.50pt;'>
-  <td width="140" x:str><strong>一级分类</strong></td>
-  <td width="170" x:str><strong>子分类</strong></td>
-  <td width="680" colspan="6" align="center" x:str><strong>应用示例</strong></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="5" style='height:27.00pt' x:str>
-<strong>基础驱动</strong></td>
-  <td x:str><strong>I2C</strong></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/src/application/samples/peripheral/i2c">I2C组件master端案例</a></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/src/application/samples/peripheral/i2c">I2C组件slave端案例</a></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/oled">SSD1306 OLED屏幕显示“Hello World”</a></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/environment">AHT20模块读取当前温湿度并显示在屏幕案例</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>SPI</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/src/application/samples/peripheral/spi">SPI组件master端案例</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/src/application/samples/peripheral/spi">SPI组件slave端案例</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/gyro">LSM6DSM模块读取横滚角、俯仰角、偏航角</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>UART</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/src/application/samples/peripheral/uart">UART轮询案例</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/src/application/samples/peripheral/uart">UART中断读取案例</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/uartdemo">开发板UART自发自收</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>PWM</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/src/application/samples/peripheral/pwm">PWM案例</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/beep">蜂鸣器案例</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>GPIO</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/buttondemo">按键案例</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/led">点亮LED灯案例</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/servo">实现SG92R舵机转动-90°、-45°、0°、45°、90°</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/tricolored">实现SK6812三色灯亮绿、红、蓝三种颜色</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/ultrasonic">超声波测距</a></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/trafficlight">交通灯案例</a></td>
- </tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="5" style='height:27.00pt' x:str>
-<strong>操作系统</strong></td>
-  <td x:str><strong>Thread</strong></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/thread">线程使用案例</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>semaphore</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/semaphore">信号量使用案例</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>event</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/event">事件使用案例</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>message</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/message">消息队列使用案例</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>mutex</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/mutex">互斥锁使用案例</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>星闪</strong></td>
-  <td x:str><strong>SLE</strong></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/sle_distribute_network">SLE配网</a></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/sle_led">通过SLE控制LED灯</a></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/sle_wifi_coexist">WiFi/SLE共存</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
- </tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>BLE</strong></td>
-  <td x:str><strong>BLE</strong></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
- </tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>Wi-Fi</strong></td>
-  <td x:str><strong>Wi-Fi</strong></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/wifista">Wi-Fi STA</a></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/wifiap">Wi-Fi AP</a></td>
-  <td width="170" x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/wifidemo">Wi-Fi TCP/UDP测速</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>TIMER</strong></td>
-  <td x:str><strong>定时器</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/timer">定时器</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>雷达</strong></td>
-  <td x:str><strong>运动感知</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/radar_led">运动感知1.0</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>低功耗</strong></td>
-  <td x:str><strong>低功耗</strong></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>端云协同</strong></td>
-  <td x:str><strong>MQTT</strong></td>
-  <td x:str><a href="https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/HiHope_NearLink_DK_WS63E_V03/demo/mqtt">华为云与开发板通过MQTT实现订阅、发布</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="4" style='height:27.00pt' x:str>
-<strong>行业解决方案</strong></td>
-  <td x:str><strong>鼠标</strong></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>键盘</strong></td>
-  <td x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>车钥匙</strong></td>
-  <td x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>遥控器</strong></td>
-  <td x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
-  <td ></td>
- </tr>
- </tr>
- <tr>
-<![if supportMisalignedColumns]>
-   <tr height="18" style="display:none;">
-   </tr>
-  <![endif]>
-</table>
-BearPi-Pico H3863提供了以下Demo供开发参考：
+         i2c 驱动中，master 角色增加读写接口，具体为增加带可设置停止位、起始位的读写 api，原驱动文件中的读写接口均固定了停止与起始位控制，会导致部分读写时序异常不能被传感器识别。
 
-<table  width="990" border="0" cellpadding="0" cellspacing="0" style='border-collapse:collapse;table-layout:fixed;'>
- <tr height="18" style='height:13.50pt;'>
-  <td width="140" x:str><strong>一级分类</strong></td>
-  <td width="170" x:str><strong>子分类</strong></td>
-  <td width="680" colspan="6" align="center" x:str><strong>应用示例</strong></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="6" style='height:27.00pt' x:str>
-<strong>基础驱动</strong></td>
-  <td x:str><strong>I2C</strong></td>
-  <td width="170" x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/study/6.I2C%20%E9%A9%B1%E5%8A%A8OLED%E5%B1%8F%E5%B9%95%E6%B5%8B%E8%AF%95.html">I2C驱动OLED屏幕案例</a></td> <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>SPI</strong></td>
-  <td x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/study/7.SPI%20%E9%A9%B1%E5%8A%A8OLED%E5%B1%8F%E5%B9%95%E6%B5%8B%E8%AF%95.html">SPI驱动OLED屏幕案例</a></td><td ></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
- </tr>
- <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>UART</strong></td>
-  <td x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/study/5.UART%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E6%B5%8B%E8%AF%95.html">开发板UART自发自收</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
-  <td ></td>
- </tr> <tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>ADC</strong></td>
-  <td x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/study/4.ADC%E9%87%87%E6%A0%B7%E6%B5%8B%E8%AF%95.html">ADC案例</a></td>  <td ></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
- </tr><tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>PWM</strong></td>
-  <td x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/study/3.PWM%E8%BE%93%E5%87%BA%E6%B5%8B%E8%AF%95.html">PWM案例</a></td><td ></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td ></td>
- </tr><tr height="18" style='height:13.50pt;'>
-  <td x:str><strong>GPIO</strong></td>
-  <td x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/study/1.GPIO%E7%82%B9%E4%BA%AELED%E7%81%AF%E6%B5%8B%E8%AF%95.html">点亮LED灯案例</a></td>
-  <td x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/study/2.GPIO%E6%8C%89%E9%94%AE%E4%B8%AD%E6%96%AD%E6%B5%8B%E8%AF%95.html">按键案例</a></td><td ></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
- </tr> <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>星闪</strong></td>
-  <td x:str><strong>SLE</strong></td>
-  <td width="170" x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/SLE%E4%B8%B2%E5%8F%A3%E9%80%8F%E4%BC%A0%E6%B5%8B%E8%AF%95.html">SLE串口透传</a></td>
-  <td width="170" x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/SLE%E7%BD%91%E5%85%B3%E9%80%8F%E4%BC%A0%E6%B5%8B%E8%AF%95.html">SLE网关透传</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td> </tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>BLE</strong></td>
-  <td x:str><strong>BLE</strong></td>
-    <td width="170" x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/BLE%E4%B8%B2%E5%8F%A3%E9%80%8F%E4%BC%A0%E6%B5%8B%E8%AF%95.html">BLE串口透传</a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td></tr>
-  <tr height="18" style='height:13.50pt;'>
-  <td width="140" align="center" rowspan="1" style='height:27.00pt' x:str>
-<strong>Wi-Fi</strong></td>
-  <td x:str><strong>Wi-Fi</strong></td>
-  <td width="170" x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/Wi-Fi%20STA%20%E8%BF%9E%E6%8E%A5%E6%97%A0%E7%BA%BF%E7%83%AD%E7%82%B9%E6%B5%8B%E8%AF%95.html">Wi-Fi STA</a></td>
-  <td width="170" x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/Wi-Fi%20SoftAP%20%E5%BC%80%E5%90%AF%E6%97%A0%E7%BA%BF%E7%83%AD%E7%82%B9%E6%B5%8B%E8%AF%95.html">Wi-Fi AP</a></td>
-  <td width="170" x:str><a href="https://www.bearpi.cn/core_board/bearpi/pico/h3863/software/Wi-Fi%20UDP%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%B5%8B%E8%AF%95.html">Wi-Fi UDP客户端</a></td> <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td>
-  <td width="170" x:str><a href=""></a></td></tr>
- </tr>
- <tr>
-<![if supportMisalignedColumns]>
-   <tr height="18" style="display:none;">
-   </tr>
-  <![endif]>
-</table>
-华清远见WS63鸿蒙星闪开发板提供了以下Demo供开发参考：
+      1. `🐞 fix(drivers-spi): 修复未返回传输结果`： spi 读取时超时时未返回实际读取个数，现已补充。
 
-| 一级分类     | 子分类             | 应用示例                                                     |                                                              |                                                              |                                                              |
-| :----------- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| **基础驱动** | **GPIO**           | [点亮LED灯案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/base_01_ledblink) |                                                              |                                                              |                                                              |
-|              | **UART**           | [串口轮询、中断收发案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/base_02_uart) |                                                              |                                                              |                                                              |
-|              | **I2C**            | [0.96寸OLED屏幕驱动案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/base_03_ssd1306) | [RGB灯珠驱动案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/base_04_rgb) | [SHT20传感器温湿度读取](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/base_05_sht20) | [AP3216读取光照、红外、人体接近数据](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/base_06_ap3216) |
-|              | **SPI**            | [2.8寸LCD屏驱动案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/base_07_spi_lcd) |                                                              |                                                              |                                                              |
-| **操作系统** | **Thread**         | [任务调度使用案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/kernel_01_task) |                                                              |                                                              |                                                              |
-|              | **Timer**          | [软件定时器使用案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/kernel_02_timer) |                                                              |                                                              |                                                              |
-|              | **Event**          | [事件使用案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/kernel_03_event) |                                                              |                                                              |                                                              |
-|              | **Mutex**          | [互斥锁使用案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/kernel_04_mutex) |                                                              |                                                              |                                                              |
-|              | **MutexSemaphore** | [互斥信号量使用案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/kernel_05_mutex_Semaphore) |                                                              |                                                              |                                                              |
-|              | **SyncSemaphore**  | [同步信号量使用案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/kernel_06_sync_Semaphore) |                                                              |                                                              |                                                              |
-|              | **CountSemaphore** | [计数型信号量使用案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/kernel_07_count_Semaphore) |                                                              |                                                              |                                                              |
-|              | **MessgeQueue**    | [消息队列使用案例](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/kernel_08_message_queque) |                                                              |                                                              |                                                              |
-| **WI-FI**    | **WI-FI**          | [WI-FI STA](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/wifi_01_sta) | [WI-FI AP](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/wifi_02_ap) | [WI-FI UDP通信](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/wifi_03_udp) | [Wi-Fi TCP通信](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/wifi_04_tcp) |
-| **端云协同** | **MQTT**           | [MQTT本地回环测试](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/wifi_05_mqtt) | [连接华为云实现控制板载资源](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/wifi_06_huawei_iot) |                                                              |                                                              |
-| **星闪**     | **SLE**            | [SLE串口透传](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/sle_01_trans_server) |                                                              |                                                              |                                                              |
-| **BLE**      | **BLE**            | [BLE串口透传](https://gitee.com/HiSpark/fbb_ws63/tree/master/vendor/Hqyj_Ws63/Farsight/ble_02_trans_server) |                                                              |                                                              |                                                              |
+         spi v151 驱动中，修改 hal_spi_v151_write 实现的部分行为，具体为：
 
-## 参与贡献
+         超时返回时，增加更新 data->rx_bytes 的行为，告知调用侧剩余未收到的数据量。
 
-- 参考[社区参与贡献指南](https://gitee.com/HiSpark/docs/blob/master/contribute/%E7%A4%BE%E5%8C%BA%E5%8F%82%E4%B8%8E%E8%B4%A1%E7%8C%AE%E6%8C%87%E5%8D%97.md)
+   1. 【未修复】
+
+      1. 暂无。
+
+1. 其他新增或修改。
+
+   1. 【新增】
+
+      1. `✨ feat(tools): 补全lzma_tool`：ota 打包固件包时会用到。
+
+         文件见：`src/tools/bin/lzma_tool`.
+
+      1. `✨ feat(linker): 支持使用xf段`：为 XFusion 自动初始化提供支持。
+
+         文件见：`src/drivers/boards/ws63/evb/linker/ws63_liteos_app_linker/linker.prelds`.
+
+         修改：在 `.text` 段内添加 `.xf_auto_init`。
+
+   1. 【修改】
+
+      1. `🦄 refactor(app-ws63): 默认不使能内存占用报告`：关闭内存占用报告，不然运行时定时输出内存情况。
+
+         文件：
+
+         1. `src/application/ws63/ws63_liteos_application/main.c`.
+         1. `src/application/Kconfig`.
+
+         修改：加了开关宏。详见对应 commit。
+
+      1. `🦄 refactor(build-config-ws63): 使能lwip的GW功能`：不使能时，DHCPc(station) 向 DHCPs(AP) 申请 IP 时无法获取网关。
+
+         文件：`src/build/config/target_config/ws63/config.py`.
+
+         修改：`defines` 内加入 `CONFIG_DHCPS_GW`.
+
+      1. `🔧 build(app-samples): 支持构建xf`：XFusion 源码作为 samples 的一部分编译。
+
+         文件：
+
+         1. `src/application/samples/CMakeLists.txt`.
+         1. `src/application/samples/Kconfig`.
+
+         修改：添加配置，可以控制是否将 XFusion 源码加入构建。详见对应 commit。
+
+      1. `🔧 build(build-config-ws63): 更新默认配置`：为适配 XFusion 而更新配置。
+
+         文件：`src/build/config/target_config/ws63/menuconfig/acore/ws63_liteos_app.config`
+
+         修改：详见对应 commit。
