@@ -14,6 +14,7 @@
 #define SLE_TM_SIGNAL_H
 
 #include <stdint.h>
+#include "errcode.h"
 
 #ifdef __cplusplus
 extern "C" {

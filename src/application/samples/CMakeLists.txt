@@ -55,6 +55,23 @@ set(MAIN_COMPONENT
     false
 )
 
+if(DEFINED CONFIG_ENABLE_XF_SUPPORT)
+    if(NOT DEFINED ENV{XF_PROJECT_PATH})
+    message(FATAL_ERROR "XF_PROJECT_PATH environment variable not detected, please run in xf command line!")
+    endif()
+
+    message("XF_PROJECT_PATH:   $ENV{XF_PROJECT_PATH}")
+    include("$ENV{XF_PROJECT_PATH}/build/build_environ.cmake")
+
+    message("XF_SRCS_STR:       ${XF_SRCS_STR}")
+    message("XF_INCS_STR:       ${XF_INCS_STR}")
+    message("XF_CFLAGS_STR:     ${XF_CFLAGS_STR}")
+
+    set(SOURCES ${SOURCES} ${XF_SRCS_STR})
+    set(PUBLIC_HEADER ${PUBLIC_HEADER} ${XF_INCS_STR})
+    set(COMPONENT_CCFLAGS ${COMPONENT_CCFLAGS} "-Wno-error" ${XF_CFLAGS_STR})
+endif()
+
 install_sdk("${CMAKE_CURRENT_SOURCE_DIR}/peripheral" "*")
 install_sdk("${CMAKE_CURRENT_SOURCE_DIR}/products" "*")
 install_sdk("${CMAKE_CURRENT_SOURCE_DIR}/wifi/sta_sample" "*")

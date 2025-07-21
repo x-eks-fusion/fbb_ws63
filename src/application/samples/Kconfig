@@ -3,6 +3,14 @@
 # Copyright (c) HiSilicon (Shanghai) Technologies Co., Ltd. 2023-2023. All rights reserved.
 #===============================================================================
 
+config ENABLE_XF_SUPPORT
+    bool
+    prompt "Enable xf support."
+    default y
+    depends on SAMPLE_ENABLE
+    help
+        This option means support porting XF.
+
 config ENABLE_BT_SAMPLE
     bool
     prompt "Enable the Sample of BT."
